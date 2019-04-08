@@ -1,0 +1,30 @@
+{
+  "name": "wip-sfu",
+  "version": "1.0.0",
+  "description": ":wip:",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leader22/wip-sfu.git"
+  },
+  "keywords": [],
+  "author": "Yuji Sugiura",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/leader22/wip-sfu/issues"
+  },
+  "homepage": "https://github.com/leader22/wip-sfu#readme",
+  "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "@types/node": "^11.13.0",
+    "prettier": "^1.16.4",
+    "ts-jest": "^24.0.2",
+    "ts-node": "^8.0.3",
+    "typescript": "^3.4.2",
+    "tslint": "^5.15.0",
+    "tslint-plugin-prettier": "^2.0.1"
+  }
+}
