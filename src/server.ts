@@ -26,6 +26,7 @@ const HTTP_PORT = 9001;
         const params = iceServer.getLocalParameters();
         console.log(params);
 
+        res.setHeader('Access-Control-Allow-Origin', '*');
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end(paramsToAnswerSDP(params));
         return;
@@ -84,7 +85,7 @@ function paramsToAnswerSDP(params: IceLiteParams): string {
     `a=ice-pwd:${password}`,
     `a=candidate:${candidate.foundation} ${candidate.component} ${
       candidate.protocol
-    } ${candidate.priority} ${candidate.address} ${candidate.port} type ${
+    } ${candidate.priority} ${candidate.address} ${candidate.port} typ ${
       candidate.type
     }`,
     'a=end-of-candidates',
