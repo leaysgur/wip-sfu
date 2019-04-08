@@ -7,6 +7,12 @@ import { generateIceChars } from './utils';
 
 const debug = _debug('ice-lite');
 
+export interface IceLiteParams {
+  usernameFragment: string;
+  password: string;
+  candidate: IceCandidate;
+}
+
 export class IceLiteServer extends EventEmitter {
   state: RTCIceTransportState;
   usernameFragment: string;
@@ -23,7 +29,7 @@ export class IceLiteServer extends EventEmitter {
     this.candidate = null;
     this.udpSocket = null;
 
-    debug('constructor()', this.toJSON());
+    debug('constructor()', this);
   }
 
   listen(udpSocket: Socket) {
@@ -33,13 +39,14 @@ export class IceLiteServer extends EventEmitter {
     const aInfo = this.udpSocket.address() as AddressInfo;
     this.candidate = createUdpHostCandidate(this.usernameFragment, aInfo);
 
-    this.udpSocket.on('message', debug);
+    this.udpSocket.on('message', debug.extend('udp'));
   }
 
-  toJSON() {
+  getLocalParameters(): IceLiteParams {
     return {
       usernameFragment: this.usernameFragment,
-      candidate: this.candidate,
+      password: this.password,
+      candidate: this.candidate as IceCandidate,
     };
   }
 }
