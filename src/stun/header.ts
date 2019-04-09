@@ -9,7 +9,7 @@ export interface StunHeader {
   transactionId: string;
 }
 
-export function readHeader($header: Buffer): StunHeader | null {
+export function parseHeader($header: Buffer): StunHeader | null {
   const type = $header.readUInt16BE(0);
   const length = $header.readUInt16BE(2);
   const magicCookie = $header.readUInt32BE(4);

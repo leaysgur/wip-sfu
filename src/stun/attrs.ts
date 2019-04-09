@@ -8,7 +8,7 @@ export interface StunAttrs {
   fingerprint?: Buffer;
 }
 
-export function readAttrs($attrs: Buffer): StunAttrs | null {
+export function parseAttrs($attrs: Buffer): StunAttrs | null {
   const attrs = {} as StunAttrs;
 
   let offset = 0;

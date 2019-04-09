@@ -2,7 +2,11 @@ import { AddressInfo } from 'net';
 import _debug from 'debug';
 import { createUdpHostCandidate, IceCandidate } from './candidate';
 import { generateIceChars } from './utils';
-import { readMessage, isConnectivityCheck } from '../stun';
+import {
+  parseMessage,
+  isConnectivityCheck,
+  // createSuccessResponse,
+} from '../stun';
 
 const debug = _debug('ice-lite');
 
@@ -36,7 +40,7 @@ export class IceLiteServer {
   }
 
   handleStunPacket($packet: Buffer): Buffer | null {
-    const msg = readMessage($packet);
+    const msg = parseMessage($packet);
     // fail to parse OR not a binding request, discard
     if (msg === null) {
       return null;
@@ -51,11 +55,9 @@ export class IceLiteServer {
       return null;
     }
 
-    // copy tId
-    console.log(msg.header.transactionId);
-    // return success-response
-    // const $res = createStunSuccessResponse(msg.header.transactionId);
-    // return null && $res;
+    // TODO: return success-response
+    // const $res = createSuccessResponse(msg.header.transactionId);
+    // return $res;
     return null;
   }
 

@@ -1,6 +1,6 @@
 import _debug from 'debug';
-import { readHeader, StunHeader } from './header';
-import { readAttrs, StunAttrs } from './attrs';
+import { parseHeader, StunHeader } from './header';
+import { parseAttrs, StunAttrs } from './attrs';
 import { generateFingerprint, generateIntegrityWithFingerprint } from './utils';
 
 const debug = _debug('stun');
@@ -10,7 +10,7 @@ export interface StunMessage {
   attrs: StunAttrs;
 }
 
-export function readMessage($packet: Buffer): StunMessage | null {
+export function parseMessage($packet: Buffer): StunMessage | null {
   const packetLen = $packet.length;
   if (packetLen < 20) {
     debug('header length must be 20, discard');
@@ -20,7 +20,7 @@ export function readMessage($packet: Buffer): StunMessage | null {
   const $header = $packet.slice(0, 20);
   const $attrs = $packet.slice(20, packetLen);
 
-  const header = readHeader($header);
+  const header = parseHeader($header);
   if (header === null) {
     return null;
   }
@@ -31,9 +31,9 @@ export function readMessage($packet: Buffer): StunMessage | null {
     return null;
   }
 
-  const attrs = readAttrs($attrs);
+  const attrs = parseAttrs($attrs);
   if (attrs === null) {
-    debug('error thrown while reading attrs, discard');
+    debug('error thrown while parsing attrs, discard');
     return null;
   }
 
@@ -74,4 +74,20 @@ export function isConnectivityCheck(
   }
 
   return true;
+}
+
+export function createSuccessResponse(transactionId: string): Buffer {
+  const $type = Buffer.alloc(2);
+  $type.writeUInt16BE(0x0101, 0);
+
+  const $length = Buffer.alloc(2);
+  $length.writeUInt16BE(0, 0);
+
+  const $magicCookie = Buffer.alloc(4);
+  $magicCookie.writeInt32BE(0x2112a442, 0);
+
+  const $transactionId = Buffer.alloc(12);
+  $transactionId.write(transactionId, 0, 12, 'hex');
+
+  return Buffer.concat([$type, $length, $magicCookie, $transactionId]);
 }
