@@ -1,129 +1,77 @@
 import _debug from 'debug';
-import { calcPaddingByte } from './utils';
+import { readHeader, StunHeader } from './header';
+import { readAttrs, StunAttrs } from './attrs';
+import { generateFingerprint, generateIntegrityWithFingerprint } from './utils';
 
 const debug = _debug('stun');
 
-interface StunMessage {
-  header: StunHeader | null;
-  attrs: StunAttrs | null;
-}
-interface StunHeader {
-  type: number;
-  length: number;
-  magicCookie: number;
-  transactionId: string;
-}
-interface StunAttrs {
-  username: string;
-  iceControlling: boolean;
-  priority: number;
-  messageIntegrity: Buffer;
-  fingerprint: Buffer;
+export interface StunMessage {
+  header: StunHeader;
+  attrs: StunAttrs;
 }
 
-export function parseStunMessage($packet: Buffer): StunMessage {
+export function readMessage($packet: Buffer): StunMessage | null {
+  const packetLen = $packet.length;
+  if (packetLen < 20) {
+    debug('header length must be 20, discard');
+    return null;
+  }
+
   const $header = $packet.slice(0, 20);
-  const $attrs = $packet.slice(20, $packet.length);
+  const $attrs = $packet.slice(20, packetLen);
 
-  const header = parseStunHeader($header);
-  // early return
+  const header = readHeader($header);
   if (header === null) {
-    return { header, attrs: null };
-  }
-  if (header.length + 20 !== $packet.length) {
-    debug('length is invalid, discard');
-    return { header, attrs: null };
+    return null;
   }
 
-  const attrs = parseStunAttrs($attrs);
+  // validate by STUN usage
+  if (header.length + 20 !== packetLen) {
+    debug('header.length is invalid, discard');
+    return null;
+  }
 
-  console.log(header);
-  console.log(attrs);
+  const attrs = readAttrs($attrs);
+  if (attrs === null) {
+    debug('error thrown while reading attrs, discard');
+    return null;
+  }
 
-  // validate fingerprint
-  // validate message-integrity
-
+  // write into
   return { header, attrs };
 }
 
-function parseStunHeader($header: Buffer): StunHeader | null {
-  const type = $header.readUInt16BE(0);
-  const length = $header.readUInt16BE(2);
-  const magicCookie = $header.readUInt32BE(4);
-  const transactionId = $header.slice(8, 20).toString('hex');
-
-  if (type !== 0x0001) {
-    debug('not a STUN BINDING_REQUEST, discard');
-    return null;
+export function isConnectivityCheck(
+  msg: StunMessage,
+  $packet: Buffer,
+  integrityKey: string,
+): boolean {
+  if (msg.header.type !== 0x0001) {
+    debug('not a BINDING-REQUEST, discard');
+    return false;
   }
 
-  if (magicCookie !== 0x2112a442) {
-    debug('magic cookie value is invalid, discard');
-    return null;
+  if (!msg.attrs.username) {
+    debug('client must have a USERNAME, discard');
+    return false;
   }
 
-  return { type, length, magicCookie, transactionId };
-}
-
-function parseStunAttrs($attrs: Buffer): StunAttrs | null {
-  const map = new Map();
-  let offset = 0;
-  while (offset < $attrs.length) {
-    const type = $attrs.readUInt16BE(offset);
-    offset += 2; // 16bit = 2byte
-
-    const length = $attrs.readUInt16BE(offset);
-    offset += 2; // 16bit = 2byte
-
-    const $value = $attrs.slice(offset, offset + length);
-    offset += $value.length;
-
-    // STUN Attribute must be in 32bit(= 4byte) boundary
-    const paddingByte = calcPaddingByte(length, 4);
-    offset += paddingByte;
-
-    switch (type) {
-      // USERNAME
-      case 0x0006: {
-        map.set('username', $value.toString());
-        break;
-      }
-      // ICE-CONTROLLING
-      case 0x802a: {
-        map.set('iceControlling', true);
-        break;
-      }
-      // PRIORITY
-      case 0x0024: {
-        map.set('priority', $value.readUInt32BE(0));
-        break;
-      }
-      // MESSAGE-INTEGRITY
-      case 0x0008: {
-        map.set('messageIntegrity', $value);
-        break;
-      }
-      // FINGERPRINT
-      case 0x8028: {
-        map.set('fingerprint', $value);
-        break;
-      }
-      default: {
-        // discard
-      }
-    }
+  if (!(msg.attrs.fingerprint && msg.attrs.messageIntegrity)) {
+    debug('both FINGERPRINT and MESSAGE-INTEGRITY are not found, discard');
+    return false;
   }
 
-  if (map.size !== 5) {
-    debug('some of required attrs are missing, discard');
-    return null;
+  const $fingerprint = generateFingerprint($packet);
+  if (!$fingerprint.equals(msg.attrs.fingerprint)) {
+    debug('FINGERPRINT missmatch, discard');
+    return false;
   }
 
-  return {
-    username: map.get('username'),
-    iceControlling: map.get('iceControlling'),
-    priority: map.get('priority'),
-    messageIntegrity: map.get('messageIntegrity'),
-    fingerprint: map.get('fingerprint'),
-  };
+  const $integrity = generateIntegrityWithFingerprint($packet, integrityKey);
+  if (!$integrity.equals(msg.attrs.messageIntegrity)) {
+    debug('MESSAGE-INTEGRITY missmatch, discard');
+    return false;
+  }
+
+  return true;
 }
