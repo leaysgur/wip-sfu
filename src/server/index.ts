@@ -64,6 +64,7 @@ export class SfuServer {
     this.httpServer.close();
   }
 
+  // See https://tools.ietf.org/html/rfc7983#section-7
   handlePacket($packet: Buffer, rInfo: RemoteInfo) {
     switch (true) {
       case $packet[0] >= 0 && $packet[0] <= 3: {

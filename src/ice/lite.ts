@@ -2,6 +2,7 @@ import { AddressInfo } from 'net';
 import _debug from 'debug';
 import { createUdpHostCandidate, IceCandidate } from './candidate';
 import { generateIceChars } from './utils';
+import { parseStunMessage } from '../stun';
 
 const debug = _debug('ice-lite');
 
@@ -35,11 +36,14 @@ export class IceLiteServer {
   }
 
   handleStunPacket($packet: Buffer): Buffer | null {
-    console.log($packet.slice(0, 20));
-
     // TODO: handle stun packet
     // parse it
     // check attrs
+    const { header } = parseStunMessage($packet);
+    if (header === null) {
+      return null;
+    }
+
     // copy tId
     // return success-response
     return null;
