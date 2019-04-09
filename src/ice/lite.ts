@@ -1,6 +1,4 @@
-import { EventEmitter } from 'events';
 import { AddressInfo } from 'net';
-import { Socket } from 'dgram';
 import _debug from 'debug';
 import { createUdpHostCandidate, IceCandidate } from './candidate';
 import { generateIceChars } from './utils';
@@ -13,31 +11,31 @@ export interface IceLiteParams {
   candidate: IceCandidate;
 }
 
-export class IceLiteServer extends EventEmitter {
+export class IceLiteServer {
+  private candidate: IceCandidate | null;
   private usernameFragment: string;
   private password: string;
-  private candidate: IceCandidate | null;
-  private udpSocket: Socket;
 
-  constructor(udpSocket: Socket) {
-    super();
-
-    this.udpSocket = udpSocket;
-    const aInfo = this.udpSocket.address() as AddressInfo;
-
+  constructor() {
+    this.candidate = null;
     this.usernameFragment = generateIceChars(4);
     this.password = generateIceChars(22);
-    this.candidate = createUdpHostCandidate(this.usernameFragment, aInfo);
 
     debug('constructor()', this.getLocalParameters());
   }
 
-  listen() {
-    debug('listen()');
+  start(aInfo: AddressInfo) {
+    debug('start()');
+    this.candidate = createUdpHostCandidate(this.usernameFragment, aInfo);
+  }
 
-    this.udpSocket.on('message', packet => {
-      console.log(packet);
-    });
+  stop() {
+    debug('stop()');
+  }
+
+  handleStunPacket($packet: Buffer) {
+    console.log($packet.slice(0, 20));
+    // process stun packet
   }
 
   getLocalParameters(): IceLiteParams {
