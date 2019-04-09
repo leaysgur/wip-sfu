@@ -58,6 +58,10 @@ function readValueByType(type: number, $value: Buffer, attrs: StunAttrs) {
       attrs.fingerprint = $value;
       break;
     }
+    case 0xc057: {
+      // ignore NETWORK-COST
+      break;
+    }
     default: {
       // discard other attrs
       // TODO: remove

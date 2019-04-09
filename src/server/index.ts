@@ -70,6 +70,8 @@ export class SfuServer {
       case $packet[0] >= 0 && $packet[0] <= 3: {
         const $res = this.iceServer.handleStunPacket($packet);
         $res && this.udpSocket.send($res, rInfo.port, rInfo.address);
+        // TODO: remove
+        // $res && this.udpSocket.send($res, 55555);
         break;
       }
       case $packet[0] >= 20 && $packet[0] <= 63: {

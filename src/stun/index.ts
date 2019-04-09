@@ -1,7 +1,12 @@
+import * as nodeIp from 'ip';
 import _debug from 'debug';
 import { parseHeader, StunHeader } from './header';
 import { parseAttrs, StunAttrs } from './attrs';
-import { generateFingerprint, generateIntegrityWithFingerprint } from './utils';
+import {
+  generateFingerprint,
+  generateIntegrityWithFingerprint,
+  bufferXor,
+} from './utils';
 
 const debug = _debug('stun');
 
@@ -76,12 +81,16 @@ export function isConnectivityCheck(
   return true;
 }
 
-export function createSuccessResponse(transactionId: string): Buffer {
+export function createSuccessResponseForConnectivityCheck(
+  transactionId: string,
+  address: string,
+  port: number,
+): Buffer {
   const $type = Buffer.alloc(2);
   $type.writeUInt16BE(0x0101, 0);
 
   const $length = Buffer.alloc(2);
-  $length.writeUInt16BE(0, 0);
+  // $length.writeUInt16BE(0, 0);
 
   const $magicCookie = Buffer.alloc(4);
   $magicCookie.writeInt32BE(0x2112a442, 0);
@@ -89,5 +98,27 @@ export function createSuccessResponse(transactionId: string): Buffer {
   const $transactionId = Buffer.alloc(12);
   $transactionId.write(transactionId, 0, 12, 'hex');
 
-  return Buffer.concat([$type, $length, $magicCookie, $transactionId]);
+  // XXX: only IPv4
+  const $family = Buffer.alloc(2);
+  $family.writeUInt16BE(0x01, 0);
+
+  const $port = Buffer.alloc(2);
+  $port.writeUInt16BE(port, 0);
+  const $xport = bufferXor($port, $magicCookie.slice(0, 2));
+
+  const $address = nodeIp.toBuffer(address);
+  const $xaddress = bufferXor($address, $magicCookie);
+
+  const $xorMappedAddress = Buffer.concat([$family, $xport, $xaddress]);
+
+  // update total length
+  $length.writeUInt16BE($xorMappedAddress.length, 0);
+  return Buffer.concat([
+    $type,
+    $length,
+    $magicCookie,
+    $transactionId,
+    // XOR-MAPPED-ADDRESS
+    $xorMappedAddress,
+  ]);
 }

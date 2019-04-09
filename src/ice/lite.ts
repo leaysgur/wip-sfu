@@ -5,7 +5,7 @@ import { generateIceChars } from './utils';
 import {
   parseMessage,
   isConnectivityCheck,
-  // createSuccessResponse,
+  createSuccessResponseForConnectivityCheck,
 } from '../stun';
 
 const debug = _debug('ice-lite');
@@ -40,6 +40,11 @@ export class IceLiteServer {
   }
 
   handleStunPacket($packet: Buffer): Buffer | null {
+    // if we are not ready
+    if (this.candidate === null) {
+      return null;
+    }
+
     const msg = parseMessage($packet);
     // fail to parse OR not a binding request, discard
     if (msg === null) {
@@ -55,10 +60,17 @@ export class IceLiteServer {
       return null;
     }
 
+    console.log(msg);
     // TODO: return success-response
-    // const $res = createSuccessResponse(msg.header.transactionId);
-    // return $res;
-    return null;
+    // - MESSAGE-INTEGRITY
+    // - FINGERPRINT
+    const $res = createSuccessResponseForConnectivityCheck(
+      msg.header.transactionId,
+      this.candidate.address,
+      this.candidate.port,
+    );
+    console.log($res);
+    return $res;
   }
 
   getLocalParameters(): IceLiteParams {
