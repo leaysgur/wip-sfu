@@ -2,7 +2,7 @@ import { AddressInfo } from 'net';
 import * as http from 'http';
 import { IncomingMessage, ServerResponse, Server } from 'http';
 import * as dgram from 'dgram';
-import { Socket, BindOptions } from 'dgram';
+import { Socket, BindOptions, RemoteInfo } from 'dgram';
 import _debug from 'debug';
 import { IceLiteServer, IceLiteParams } from '../ice';
 
@@ -64,10 +64,11 @@ export class SfuServer {
     this.httpServer.close();
   }
 
-  handlePacket($packet: Buffer) {
+  handlePacket($packet: Buffer, rInfo: RemoteInfo) {
     switch (true) {
       case $packet[0] >= 0 && $packet[0] <= 3: {
-        this.iceServer.handleStunPacket($packet);
+        const $res = this.iceServer.handleStunPacket($packet);
+        $res && this.udpSocket.send($res, rInfo.port, rInfo.address);
         break;
       }
       case $packet[0] >= 20 && $packet[0] <= 63: {

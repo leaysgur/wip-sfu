@@ -31,11 +31,18 @@ export class IceLiteServer {
 
   stop() {
     debug('stop()');
+    this.candidate = null;
   }
 
-  handleStunPacket($packet: Buffer) {
+  handleStunPacket($packet: Buffer): Buffer | null {
     console.log($packet.slice(0, 20));
-    // process stun packet
+
+    // TODO: handle stun packet
+    // parse it
+    // check attrs
+    // copy tId
+    // return success-response
+    return null;
   }
 
   getLocalParameters(): IceLiteParams {
