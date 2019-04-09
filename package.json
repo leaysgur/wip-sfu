@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/leader22/wip-sfu#readme",
   "devDependencies": {
+    "@types/buffer-crc32": "^0.2.0",
     "@types/debug": "^4.1.3",
     "@types/jest": "^24.0.11",
     "@types/node": "^11.13.0",
@@ -31,6 +32,7 @@
     "typescript": "^3.4.2"
   },
   "dependencies": {
+    "buffer-crc32": "^0.2.13",
     "debug": "^4.1.1"
   }
 }
