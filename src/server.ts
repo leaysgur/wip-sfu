@@ -3,8 +3,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 import * as dgram from 'dgram';
 import { Socket, BindOptions } from 'dgram';
 import _debug from 'debug';
-import { createServer } from './ice';
-import { IceLiteParams } from './ice/lite';
+import { IceLiteServer, IceLiteParams } from './ice';
 
 const debug = _debug('server');
 
@@ -15,14 +14,14 @@ const HTTP_PORT = 9001;
   debug('bind UDP socket');
   const udpSocket = await bindUdpSocket({ address: SFU_ADDRESS, port: 0 });
 
-  debug('start ICE-Lite server');
-  const iceServer = createServer();
-  iceServer.listen(udpSocket);
+  debug('create ICE-Lite server');
+  const iceServer = new IceLiteServer(udpSocket);
 
   debug('create http server');
   const httpServer = http.createServer(
     (req: IncomingMessage, res: ServerResponse) => {
       if (req.url && req.url.startsWith('/offer')) {
+        // iceServer.handleClientOffer()
         const params = iceServer.getLocalParameters();
         console.log(params);
 
@@ -33,20 +32,13 @@ const HTTP_PORT = 9001;
       }
 
       res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Wrong path!');
+      res.end('GET /offer only allowed!');
     },
   );
 
   debug('start http server on', HTTP_PORT);
   httpServer.listen(HTTP_PORT);
-
-  // broswer: audioonly-sendonly
-  // broswer: createOffer, sLD
-  // browser: send it
-  // server: receive it
-  // server: create answer SDP
-  // server: return it
-  // browser: sRD
+  iceServer.listen();
 })();
 
 function bindUdpSocket(options: BindOptions): Promise<Socket> {

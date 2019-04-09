@@ -14,32 +14,30 @@ export interface IceLiteParams {
 }
 
 export class IceLiteServer extends EventEmitter {
-  state: RTCIceTransportState;
-  usernameFragment: string;
-  password: string;
-  candidate: IceCandidate | null;
-  udpSocket: Socket | null;
+  private usernameFragment: string;
+  private password: string;
+  private candidate: IceCandidate | null;
+  private udpSocket: Socket;
 
-  constructor() {
+  constructor(udpSocket: Socket) {
     super();
-
-    this.state = 'new';
-    this.usernameFragment = generateIceChars(4);
-    this.password = generateIceChars(22);
-    this.candidate = null;
-    this.udpSocket = null;
-
-    debug('constructor()', this);
-  }
-
-  listen(udpSocket: Socket) {
-    debug('listen()');
 
     this.udpSocket = udpSocket;
     const aInfo = this.udpSocket.address() as AddressInfo;
+
+    this.usernameFragment = generateIceChars(4);
+    this.password = generateIceChars(22);
     this.candidate = createUdpHostCandidate(this.usernameFragment, aInfo);
 
-    this.udpSocket.on('message', debug.extend('udp'));
+    debug('constructor()', this.getLocalParameters());
+  }
+
+  listen() {
+    debug('listen()');
+
+    this.udpSocket.on('message', packet => {
+      console.log(packet);
+    });
   }
 
   getLocalParameters(): IceLiteParams {
