@@ -27,7 +27,11 @@ export class SfuServer {
     this.httpServer = http.createServer(
       (req: IncomingMessage, res: ServerResponse) => {
         if (req.url && req.url.startsWith('/offer')) {
+          // TODO: use it
+          const query = new URLSearchParams(req.url.split('?')[1]);
+          console.log(query);
           // iceServer.handleClientOffer()
+
           const params = this.iceServer.getLocalParameters();
           console.log(params);
 
