@@ -19,7 +19,28 @@ $createOffer.onclick = async () => {
   await pc.setLocalDescription(offer);
 };
 $sendOffer.onclick = async () => {
-  const answer = await fetch('http://127.0.0.1:9001/offer', { mode: 'cors' }).then(res => res.text());
+  const url = new URL('http://127.0.0.1:9001/offer');
+  const iceParams = extractIceParams(pc.localDescription.sdp);
+  Object.entries(iceParams).forEach(([key, val]) => url.searchParams.append(key, val));
+  const answer = await fetch(url.toString(), { mode: 'cors' }).then(res => res.text());
   console.log(answer);
   await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer }));
 };
+
+function extractIceParams(sdp) {
+  const params = {
+    usernameFragment: '',
+    password: '',
+  };
+
+  for (const line of sdp.split('\r\n')) {
+    if (line.startsWith('a=ice-ufrag:')) {
+      params.usernameFragment = line.split('a=ice-ufrag:')[1];
+    }
+    if (line.startsWith('a=ice-pwd:')) {
+      params.password = line.split('a=ice-pwd:')[1];
+    }
+  }
+
+  return params;
+}
