@@ -1,1 +1,2 @@
-export { IceLiteServer, IceLiteParams } from './lite';
+export { IceLiteServer, IceParams } from './lite';
+export { IceCandidate } from './candidate';

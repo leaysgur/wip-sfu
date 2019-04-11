@@ -10,10 +10,9 @@ import {
 
 const debug = _debug('ice-lite');
 
-export interface IceLiteParams {
+export interface IceParams {
   usernameFragment: string;
   password: string;
-  candidate: IceCandidate;
 }
 
 export class IceLiteServer {
@@ -73,11 +72,14 @@ export class IceLiteServer {
     return $res;
   }
 
-  getLocalParameters(): IceLiteParams {
+  getLocalParameters(): IceParams {
     return {
       usernameFragment: this.usernameFragment,
       password: this.password,
-      candidate: this.candidate as IceCandidate,
     };
+  }
+
+  getLocalCandidate(): IceCandidate {
+    return this.candidate as IceCandidate;
   }
 }
