@@ -20,8 +20,11 @@ $createOffer.onclick = async () => {
 };
 $sendOffer.onclick = async () => {
   const url = new URL('http://127.0.0.1:9001/offer');
+  url.searchParams.append('id', Date.now());
+
   const iceParams = extractIceParams(pc.localDescription.sdp);
   Object.entries(iceParams).forEach(([key, val]) => url.searchParams.append(key, val));
+
   const answer = await fetch(url.toString(), { mode: 'cors' }).then(res => res.text());
   console.log(answer);
   await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer }));
