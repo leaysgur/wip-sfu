@@ -1,4 +1,5 @@
 import { AddressInfo } from 'net';
+import { RemoteInfo } from 'dgram';
 import _debug from 'debug';
 import { createUdpHostCandidate, IceCandidate } from './candidate';
 import { generateIceChars } from './utils';
@@ -45,7 +46,7 @@ export class IceLiteServer {
     this.candidate = null;
   }
 
-  handleStunPacket($packet: Buffer): Buffer | null {
+  handleStunPacket($packet: Buffer, rInfo: RemoteInfo): Buffer | null {
     // if we are not ready
     if (!(this.candidate !== null && this.remoteParams !== null)) {
       return null;
@@ -77,8 +78,8 @@ export class IceLiteServer {
     const $res = createSuccessResponseForConnectivityCheck(
       msg.header.transactionId,
       this.remoteParams.password,
-      this.candidate.address,
-      this.candidate.port,
+      rInfo.address,
+      rInfo.port,
     );
 
     // if (USE_CANDIDATE) {}

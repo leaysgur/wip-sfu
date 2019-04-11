@@ -44,10 +44,10 @@ export class Connection {
   handlePacket($packet: Buffer, rInfo: RemoteInfo) {
     switch (true) {
       case $packet[0] >= 0 && $packet[0] <= 3: {
-        const $res = this.iceServer.handleStunPacket($packet);
+        const $res = this.iceServer.handleStunPacket($packet, rInfo);
         $res && this.udpSocket.send($res, rInfo.port, rInfo.address);
         // TODO: remove
-        $res && this.udpSocket.send($res, 55555);
+        // $res && this.udpSocket.send($res, 55555);
         break;
       }
       case $packet[0] >= 20 && $packet[0] <= 63: {
