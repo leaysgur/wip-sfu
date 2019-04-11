@@ -24,19 +24,16 @@ export class Connection {
     this.iceServer = new IceLiteServer();
   }
 
-  async start(params: IceParams) {
-    debug('start()', params);
+  async start(remoteIceParams: IceParams): Promise<ConnectParams> {
+    debug('start()', remoteIceParams);
     await this.bindUdpSocket(this.udpSocket, this.address);
     this.udpSocket.on('message', this.handlePacket.bind(this));
 
     const aInfo = this.udpSocket.address() as AddressInfo;
     debug('bind UDP socket', aInfo);
 
-    // TODO: pass params and use it for check
-    this.iceServer.start(aInfo);
-  }
+    this.iceServer.start(aInfo, remoteIceParams);
 
-  getLocalParameters(): ConnectParams {
     return {
       iceParams: this.iceServer.getLocalParameters(),
       iceCandidate: this.iceServer.getLocalCandidate(),

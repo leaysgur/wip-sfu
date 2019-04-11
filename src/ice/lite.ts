@@ -17,20 +17,27 @@ export interface IceParams {
 
 export class IceLiteServer {
   private candidate: IceCandidate | null;
-  private usernameFragment: string;
-  private password: string;
+  private localParams: IceParams;
+  private remoteParams: IceParams | null;
 
   constructor() {
     this.candidate = null;
-    this.usernameFragment = generateIceChars(4);
-    this.password = generateIceChars(22);
+    this.remoteParams = null;
+    this.localParams = {
+      usernameFragment: generateIceChars(4),
+      password: generateIceChars(22),
+    };
 
     debug('constructor()', this.getLocalParameters());
   }
 
-  start(aInfo: AddressInfo) {
+  start(aInfo: AddressInfo, remoteIceParams: IceParams) {
     debug('start()');
-    this.candidate = createUdpHostCandidate(this.usernameFragment, aInfo);
+    this.remoteParams = remoteIceParams;
+    this.candidate = createUdpHostCandidate(
+      this.localParams.usernameFragment,
+      aInfo,
+    );
   }
 
   stop() {
@@ -40,7 +47,7 @@ export class IceLiteServer {
 
   handleStunPacket($packet: Buffer): Buffer | null {
     // if we are not ready
-    if (this.candidate === null) {
+    if (!(this.candidate !== null && this.remoteParams !== null)) {
       return null;
     }
 
@@ -55,7 +62,15 @@ export class IceLiteServer {
       debug('client must be an ICE-CONTROLLING, discard');
       return null;
     }
-    if (!isConnectivityCheck(msg, $packet, this.password)) {
+    const validUsername =
+      this.localParams.usernameFragment +
+      ':' +
+      this.remoteParams.usernameFragment;
+    if (msg.attrs.username !== validUsername) {
+      debug('USERNAME is invalid, discard');
+      return null;
+    }
+    if (!isConnectivityCheck(msg, $packet, this.localParams.password)) {
       return null;
     }
 
@@ -69,13 +84,16 @@ export class IceLiteServer {
       this.candidate.port,
     );
     console.log($res);
+
+    // if (USE_CANDIDATE) {}
+
     return $res;
   }
 
   getLocalParameters(): IceParams {
     return {
-      usernameFragment: this.usernameFragment,
-      password: this.password,
+      usernameFragment: this.localParams.usernameFragment,
+      password: this.localParams.password,
     };
   }
 

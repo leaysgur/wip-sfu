@@ -1,7 +1,7 @@
 import { AddressInfo } from 'net';
 
 const TYPE_PREF_HOST = 126;
-const LOCAL_PREF = 65535;
+const LOCAL_PREF = 65535; // IPv4
 const COMPONENT_ID = 1;
 
 export interface IceCandidate {

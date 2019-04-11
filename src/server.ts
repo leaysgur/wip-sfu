@@ -14,13 +14,13 @@ export interface SfuServerOptions {
 export class SfuServer {
   private options: SfuServerOptions;
   private httpServer: Server;
-  private publishConnections: Map<string, Connection>;
+  private pubConnections: Map<string, Connection>;
 
   constructor(options: SfuServerOptions) {
     debug('constructor()', options);
     this.options = options;
 
-    this.publishConnections = new Map();
+    this.pubConnections = new Map();
 
     this.httpServer = http.createServer(
       (req: IncomingMessage, res: ServerResponse) => {
@@ -59,19 +59,22 @@ export class SfuServer {
     // TODO: validate query
 
     const id = query.get('id') as string;
-    const remoteParams = {
+    const remoteIceParams = {
       usernameFragment: query.get('usernameFragment'),
       password: query.get('password'),
     } as IceParams;
 
-    debug('handlePublish()', id, remoteParams);
+    debug('handlePublish()', id);
 
     const conn = new Connection(this.options.sfuAddress);
-    this.publishConnections.set(id, conn);
-    await conn.start(remoteParams).catch(console.error);
+    const connParams = (await conn
+      .start(remoteIceParams)
+      .catch(console.error)) as ConnectParams;
+
+    this.pubConnections.set(id, conn);
 
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(this.paramsToAnswerSDP(conn.getLocalParameters()));
+    res.end(this.paramsToAnswerSDP(connParams));
   }
 
   private paramsToAnswerSDP(params: ConnectParams): string {
