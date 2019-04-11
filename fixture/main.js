@@ -19,7 +19,7 @@ $createOffer.onclick = async () => {
   await pc.setLocalDescription(offer);
 };
 $sendOffer.onclick = async () => {
-  const url = new URL('http://127.0.0.1:9001/offer');
+  const url = new URL('http://127.0.0.1:9001/publish');
   url.searchParams.append('id', Date.now());
 
   const iceParams = extractIceParams(pc.localDescription.sdp);
