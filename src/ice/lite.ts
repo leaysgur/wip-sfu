@@ -74,16 +74,12 @@ export class IceLiteServer {
       return null;
     }
 
-    console.log(msg);
-    // TODO: return success-response
-    // - MESSAGE-INTEGRITY
-    // - FINGERPRINT
     const $res = createSuccessResponseForConnectivityCheck(
       msg.header.transactionId,
+      this.remoteParams.password,
       this.candidate.address,
       this.candidate.port,
     );
-    console.log($res);
 
     // if (USE_CANDIDATE) {}
 

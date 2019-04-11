@@ -31,10 +31,32 @@ export function bufferXor(a: Buffer, b: Buffer): Buffer {
   return buffer;
 }
 
+export function createAttr(type: number, $value: Buffer): Buffer {
+  // 2byte(16bit) for type
+  const $type = Buffer.alloc(2);
+  $type.writeUInt16BE(type, 0);
+
+  // 2byte(16bit) for length
+  const $length = Buffer.alloc(2);
+  $length.writeUInt16BE($value.length, 0);
+
+  const paddingByte = calcPaddingByte($value.length, 4);
+  const $padding = Buffer.alloc(paddingByte);
+
+  return Buffer.concat([$type, $length, $value, $padding]);
+}
+
 export function generateFingerprint($msg: Buffer): Buffer {
   // without FINGERPRINT: 8byte(header: 4byte + value: 4byte(32bit))
   const $crc32 = crc32($msg.slice(0, -8));
   return bufferXor($crc32, Buffer.from('5354554e', 'hex'));
+}
+
+export function generateIntegrity($msg: Buffer, integrityKey: string): Buffer {
+  // without MESSAGE-INTEGRITY: 24byte(header: 4byte + value: 20byte(sha1))
+  return createHmac('sha1', integrityKey)
+    .update($msg.slice(0, -24))
+    .digest();
 }
 
 export function generateIntegrityWithFingerprint(

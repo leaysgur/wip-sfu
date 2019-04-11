@@ -4,8 +4,10 @@ import { parseHeader, StunHeader } from './header';
 import { parseAttrs, StunAttrs } from './attrs';
 import {
   generateFingerprint,
+  generateIntegrity,
   generateIntegrityWithFingerprint,
   bufferXor,
+  createAttr,
 } from './utils';
 
 const debug = _debug('stun');
@@ -83,6 +85,7 @@ export function isConnectivityCheck(
 
 export function createSuccessResponseForConnectivityCheck(
   transactionId: string,
+  integrityKey: string,
   address: string,
   port: number,
 ): Buffer {
@@ -90,7 +93,7 @@ export function createSuccessResponseForConnectivityCheck(
   $type.writeUInt16BE(0x0101, 0);
 
   const $length = Buffer.alloc(2);
-  // $length.writeUInt16BE(0, 0);
+  $length.writeUInt16BE(0, 0);
 
   const $magicCookie = Buffer.alloc(4);
   $magicCookie.writeInt32BE(0x2112a442, 0);
@@ -98,8 +101,11 @@ export function createSuccessResponseForConnectivityCheck(
   const $transactionId = Buffer.alloc(12);
   $transactionId.write(transactionId, 0, 12, 'hex');
 
-  // XXX: only IPv4
+  const $header = Buffer.concat([$type, $length, $magicCookie, $transactionId]);
+
+  // set XOR-MAPPED-ADDRESS
   const $family = Buffer.alloc(2);
+  // XXX: only IPv4
   $family.writeUInt16BE(0x01, 0);
 
   const $port = Buffer.alloc(2);
@@ -109,16 +115,45 @@ export function createSuccessResponseForConnectivityCheck(
   const $address = nodeIp.toBuffer(address);
   const $xaddress = bufferXor($address, $magicCookie);
 
-  const $xorMappedAddress = Buffer.concat([$family, $xport, $xaddress]);
+  const $xorMappedAddress = createAttr(
+    0x0020,
+    Buffer.concat([$family, $xport, $xaddress]),
+  );
+  const xMALen = $xorMappedAddress.length;
+  const mILen = 24; // 4 + 20
+  const fLen = 8; // 4 + 4
 
-  // update total length
-  $length.writeUInt16BE($xorMappedAddress.length, 0);
-  return Buffer.concat([
-    $type,
-    $length,
-    $magicCookie,
-    $transactionId,
-    // XOR-MAPPED-ADDRESS
+  let $res = Buffer.concat([$header, $xorMappedAddress]);
+
+  // set MESSAGE-INTEGRITY
+  // need to update w/ dummy value first
+  $header.writeUInt16BE(xMALen + mILen, 2);
+  $res = Buffer.concat([$header, $xorMappedAddress, Buffer.alloc(mILen)]);
+
+  // update w/ correct value
+  const $integrityValue = generateIntegrity($res, integrityKey);
+  const $messageIntegrity = createAttr(0x0008, $integrityValue);
+  $res = Buffer.concat([$header, $xorMappedAddress, $messageIntegrity]);
+
+  // set FINGERPRINT
+  // need to update w/ dummy value first
+  $header.writeUInt16BE($xorMappedAddress.length + mILen + fLen, 2);
+  $res = Buffer.concat([
+    $header,
     $xorMappedAddress,
+    $messageIntegrity,
+    Buffer.alloc(fLen),
   ]);
+
+  // update w/ correct value
+  const $fpValue = generateFingerprint($res);
+  const $fingerprint = createAttr(0x8028, $fpValue);
+  $res = Buffer.concat([
+    $header,
+    $xorMappedAddress,
+    $messageIntegrity,
+    $fingerprint,
+  ]);
+
+  return $res;
 }
