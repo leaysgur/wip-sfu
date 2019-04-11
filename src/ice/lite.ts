@@ -6,7 +6,7 @@ import {
   parseMessage,
   isConnectivityCheck,
   createSuccessResponseForConnectivityCheck,
-} from '../stun';
+} from './stun';
 
 const debug = _debug('ice-lite');
 
