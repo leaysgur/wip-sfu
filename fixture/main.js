@@ -13,7 +13,7 @@ $createPc.onclick = async () => {
   console.log(pc);
 };
 $createOffer.onclick = async () => {
-  pc.addTrack(stream.getTracks()[0], stream);
+  pc.addTransceiver(stream.getAudioTracks()[0], { direction: 'sendonly', streams: [stream] });
   const offer = await pc.createOffer();
   console.log(offer.sdp);
   await pc.setLocalDescription(offer);
