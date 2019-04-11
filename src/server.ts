@@ -14,13 +14,13 @@ export interface SfuServerOptions {
 export class SfuServer {
   private options: SfuServerOptions;
   private httpServer: Server;
-  private connections: Map<string, Connection>;
+  private publishConnections: Map<string, Connection>;
 
   constructor(options: SfuServerOptions) {
     debug('constructor()', options);
     this.options = options;
 
-    this.connections = new Map();
+    this.publishConnections = new Map();
 
     this.httpServer = http.createServer(
       (req: IncomingMessage, res: ServerResponse) => {
@@ -30,8 +30,8 @@ export class SfuServer {
         res.setHeader('Access-Control-Allow-Origin', '*');
 
         switch (true) {
-          case url.startsWith('/offer'): {
-            this.handleConnect(query, res);
+          case url.startsWith('/publish'): {
+            this.handlePublish(query, res);
             break;
           }
           default: {
@@ -55,7 +55,7 @@ export class SfuServer {
     this.httpServer.close();
   }
 
-  private async handleConnect(query: URLSearchParams, res: ServerResponse) {
+  private async handlePublish(query: URLSearchParams, res: ServerResponse) {
     // TODO: validate query
 
     const id = query.get('id') as string;
@@ -64,10 +64,10 @@ export class SfuServer {
       password: query.get('password'),
     } as IceParams;
 
-    debug('handleConnect()', id, remoteParams);
+    debug('handlePublish()', id, remoteParams);
 
     const conn = new Connection(this.options.sfuAddress);
-    this.connections.set(id, conn);
+    this.publishConnections.set(id, conn);
     await conn.start(remoteParams).catch(console.error);
 
     res.writeHead(200, { 'Content-Type': 'text/plain' });
