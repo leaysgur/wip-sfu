@@ -83,12 +83,14 @@ export function isConnectivityCheck(
   return true;
 }
 
+// TODO: split logic
 export function createSuccessResponseForConnectivityCheck(
   transactionId: string,
   integrityKey: string,
   address: string,
   port: number,
 ): Buffer {
+  // header
   const $type = Buffer.alloc(2);
   $type.writeUInt16BE(0x0101, 0);
 
@@ -103,6 +105,7 @@ export function createSuccessResponseForConnectivityCheck(
 
   const $header = Buffer.concat([$type, $length, $magicCookie, $transactionId]);
 
+  // attrs
   // set XOR-MAPPED-ADDRESS
   const $family = Buffer.alloc(2);
   // XXX: only IPv4

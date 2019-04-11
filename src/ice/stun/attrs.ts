@@ -50,6 +50,10 @@ function readValueByType(type: number, $value: Buffer, attrs: StunAttrs) {
       attrs.priority = $value.readUInt32BE(0);
       break;
     }
+    case 0x0025: {
+      console.log('USE-CANDIDATE!!!!!');
+      break;
+    }
     case 0x0008: {
       attrs.messageIntegrity = $value;
       break;
@@ -61,11 +65,6 @@ function readValueByType(type: number, $value: Buffer, attrs: StunAttrs) {
     case 0xc057: {
       // ignore NETWORK-COST
       break;
-    }
-    default: {
-      // discard other attrs
-      // TODO: remove
-      console.log('discard attr', type);
     }
   }
 }

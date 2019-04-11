@@ -75,6 +75,8 @@ export class IceLiteServer {
       return null;
     }
 
+    // TODO: check this logic
+    // if response has sent correctly, request w/ USE-CANDIDATE arrives next
     const $res = createSuccessResponseForConnectivityCheck(
       msg.header.transactionId,
       this.remoteParams.password,
@@ -82,7 +84,7 @@ export class IceLiteServer {
       rInfo.port,
     );
 
-    // if (USE_CANDIDATE) {}
+    // if (USE-CANDIDATE) {}
 
     return $res;
   }
