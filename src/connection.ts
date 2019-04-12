@@ -38,10 +38,11 @@ export class Connection {
       debug('bind UDP socket', aInfo);
     }
 
-    const boundAddressInfo = this.udpSockets.map(
+    // update aInfos
+    this.aInfos = this.udpSockets.map(
       udpSocket => udpSocket.address() as AddressInfo,
     );
-    this.iceServer.start(boundAddressInfo, remoteIceParams);
+    this.iceServer.start(this.aInfos, remoteIceParams);
 
     return {
       iceParams: this.iceServer.getLocalParameters(),

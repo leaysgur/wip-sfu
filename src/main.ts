@@ -13,11 +13,16 @@ import { SfuServer } from './server';
         address: '127.0.0.1',
         port: 0,
       },
-      {
-        family: 'IPv6',
-        address: '::1',
-        port: 0,
-      },
+      // {
+      //   family: 'IPv4',
+      //   address: '127.0.0.1',
+      //   port: 0,
+      // },
+      // {
+      //   family: 'IPv6',
+      //   address: '::1',
+      //   port: 0,
+      // },
     ],
   });
 
