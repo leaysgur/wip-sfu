@@ -13,7 +13,7 @@ $createPc.onclick = async () => {
   console.log(pc);
 };
 $createOffer.onclick = async () => {
-  pc.addTransceiver(stream.getAudioTracks()[0], { direction: 'sendonly', streams: [stream] });
+  pc.addTransceiver(stream.getAudioTracks()[0], { direction: 'sendonly' });
   const offer = await pc.createOffer();
   console.log(offer.sdp);
   await pc.setLocalDescription(offer);
@@ -63,7 +63,7 @@ function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidates }) {
       return 'a=recvonly';
     }
     if (line.startsWith('a=setup')) {
-      return 'a=setup:active';
+      return 'a=setup:passive';
     }
     if (line.startsWith('m=')) {
       return fixedMLine;
