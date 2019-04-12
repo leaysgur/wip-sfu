@@ -68,13 +68,17 @@ export class SfuServer {
     debug('handlePublish()', id);
 
     const conn = new Connection(this.options.sfu);
-    const connParams = (await conn
-      .start(remoteIceParams)
-      .catch(console.error)) as ConnectParams;
 
-    this.pubConnections.set(id, conn);
+    try {
+      const connParams = (await conn.start(remoteIceParams)) as ConnectParams;
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(connParams));
+      this.pubConnections.set(id, conn);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(connParams));
+    } catch (err) {
+      res.writeHead(500);
+      res.end(err.toString());
+    }
   }
 }
