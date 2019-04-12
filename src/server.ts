@@ -8,6 +8,7 @@ const debug = _debug('server');
 
 export interface SfuServerOptions {
   httpPort: number;
+  httpAddress: string;
   sfuAddress: string;
 }
 
@@ -47,7 +48,7 @@ export class SfuServer {
 
   async start() {
     debug('start()');
-    this.httpServer.listen(this.options.httpPort);
+    this.httpServer.listen(this.options.httpPort, this.options.httpAddress);
   }
 
   stop() {
