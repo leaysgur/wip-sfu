@@ -4,6 +4,7 @@ export interface StunAttrs {
   username?: string;
   iceControlling?: boolean;
   priority?: number;
+  useCandidate?: boolean;
   messageIntegrity?: Buffer;
   fingerprint?: Buffer;
 }
@@ -51,7 +52,7 @@ function readValueByType(type: number, $value: Buffer, attrs: StunAttrs) {
       break;
     }
     case 0x0025: {
-      console.log('USE-CANDIDATE!!!!!');
+      attrs.useCandidate = true;
       break;
     }
     case 0x0008: {

@@ -17,17 +17,17 @@ export interface IceParams {
 }
 
 export class IceLiteServer {
-  private candidate: IceCandidate | null;
   private localParams: IceParams;
   private remoteParams: IceParams | null;
+  private candidate: IceCandidate | null;
 
   constructor() {
-    this.candidate = null;
-    this.remoteParams = null;
     this.localParams = {
       usernameFragment: generateIceChars(4),
       password: generateIceChars(22),
     };
+    this.remoteParams = null;
+    this.candidate = null;
 
     debug('constructor()', this.getLocalParameters());
   }
@@ -77,14 +77,17 @@ export class IceLiteServer {
       return null;
     }
 
+    if (msg.attrs.useCandidate) {
+      debug('receive USE-CANDIDATE');
+      // this.stateChange('');
+    }
+
     const $res = createSuccessResponseForConnectivityCheck(
       msg.header.transactionId,
       this.remoteParams.password,
       rInfo.address,
       rInfo.port,
     );
-
-    // if (USE-CANDIDATE) {}
 
     return $res;
   }
