@@ -55,9 +55,6 @@ function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidate }) {
 
   let sdpLines = offerSdp.split('\r\n');
 
-  // pretend ICE-Lite server
-  sdpLines.splice(4, 0, 'a=ice-lite');
-
   sdpLines = sdpLines.map(line => {
     if (line.startsWith('a=fingerprint')) {
       // tslint:disable-next-line:max-line-length
@@ -67,14 +64,18 @@ function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidate }) {
       return 'a=recvonly';
     }
     if (line.startsWith('a=setup')) {
-      return 'a=setup:passive';
+      return 'a=setup:active';
     }
-    if (line.startsWith('a=candidate') || line.startsWith('a=ice-') || line.startsWith('a=msid') || line.startsWith('a=ssrc')) {
+    if (line.startsWith('a=candidate') || line.startsWith('a=msid') || line.startsWith('a=ssrc')) {
       return '';
     }
 
     return line;
   }).filter(Boolean);
+
+  // pretend ICE-Lite server
+  // TODO: why this can't be added...?
+  // sdpLines.splice(4, 0, 'a=ice-lite');
 
   sdpLines.push(
     `a=ice-ufrag:${usernameFragment}`,
