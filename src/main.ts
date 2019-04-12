@@ -1,14 +1,24 @@
 import { SfuServer } from './server';
 
-const SFU_ADDRESS = '127.0.0.1';
-const HTTP_ADDRESS = '127.0.0.1';
-const HTTP_PORT = 9001;
-
 (async function() {
   const sfuServer = new SfuServer({
-    httpPort: HTTP_PORT,
-    httpAddress: HTTP_ADDRESS,
-    sfuAddress: SFU_ADDRESS,
+    http: {
+      family: 'IPv4',
+      address: '127,0,0,1',
+      port: 9001,
+    },
+    sfu: [
+      {
+        family: 'IPv4',
+        address: '127.0.0.1',
+        port: 0,
+      },
+      {
+        family: 'IPv6',
+        address: '::1',
+        port: 0,
+      },
+    ],
   });
 
   await sfuServer.start().catch(err => {

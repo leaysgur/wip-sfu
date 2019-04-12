@@ -22,15 +22,22 @@ interface UdpHostCandidate extends IceCandidate {
 
 export function createUdpHostCandidate(
   usernameFragment: string,
-  { address, port }: AddressInfo,
+  { address, port, family }: AddressInfo,
+  idx: number,
 ): UdpHostCandidate {
+  const isIPv4 = family === 'IPv4';
+
+  // prefer IPv4
+  const localPref = isIPv4 ? LOCAL_PREF : LOCAL_PREF - 1000;
+  const priority =
+    (2 ^ 24) * TYPE_PREF_HOST + (2 ^ 8) * localPref + (2 ^ 0) * COMPONENT_ID;
+
   return {
     type: 'host',
     protocol: 'udp',
-    foundation: 'udp-host-candidate',
+    foundation: `udp-${isIPv4 ? 4 : 6}-host-candidate`,
     component: COMPONENT_ID,
-    priority:
-      (2 ^ 24) * TYPE_PREF_HOST + (2 ^ 8) * LOCAL_PREF + (2 ^ 0) * COMPONENT_ID,
+    priority: priority - idx * 100,
     usernameFragment,
     address,
     port,

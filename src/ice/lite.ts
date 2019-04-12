@@ -19,7 +19,7 @@ export interface IceParams {
 export class IceLiteServer {
   private localParams: IceParams;
   private remoteParams: IceParams | null;
-  private candidate: IceCandidate | null;
+  private candidates: IceCandidate[];
 
   constructor() {
     this.localParams = {
@@ -27,30 +27,32 @@ export class IceLiteServer {
       password: generateIceChars(22),
     };
     this.remoteParams = null;
-    this.candidate = null;
+    this.candidates = [];
 
     debug('constructor()', this.getLocalParameters());
   }
 
-  start(aInfo: AddressInfo, remoteIceParams: IceParams) {
+  start(aInfos: AddressInfo[], remoteIceParams: IceParams) {
     debug('start()');
     this.remoteParams = remoteIceParams;
-    this.candidate = createUdpHostCandidate(
-      this.localParams.usernameFragment,
-      aInfo,
-    );
+
+    aInfos.forEach((aInfo, idx) => {
+      this.candidates.push(
+        createUdpHostCandidate(this.localParams.usernameFragment, aInfo, idx),
+      );
+    });
   }
 
   stop() {
     debug('stop()');
-    this.candidate = null;
+    this.candidates = [];
   }
 
   handleStunPacket($packet: Buffer, rInfo: RemoteInfo): Buffer | null {
-    debug('handleStunPacket()');
+    debug('handleStunPacket()', rInfo);
 
     // if we are not ready
-    if (!(this.candidate !== null && this.remoteParams !== null)) {
+    if (!(this.candidates.length !== 0 && this.remoteParams !== null)) {
       return null;
     }
 
@@ -99,7 +101,7 @@ export class IceLiteServer {
     };
   }
 
-  getLocalCandidate(): IceCandidate {
-    return this.candidate as IceCandidate;
+  getLocalCandidates(): IceCandidate[] {
+    return this.candidates;
   }
 }

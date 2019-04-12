@@ -1,3 +1,4 @@
+import * as net from 'net';
 import * as nodeIp from 'ip';
 import _debug from 'debug';
 import { parseHeader, StunHeader } from './header';
@@ -107,16 +108,18 @@ export function createSuccessResponseForConnectivityCheck(
 
   // attrs
   // set XOR-MAPPED-ADDRESS
+  const isIPv4 = net.isIPv4(address);
   const $family = Buffer.alloc(2);
-  // XXX: only IPv4
-  $family.writeUInt16BE(0x01, 0);
+  $family.writeUInt16BE(isIPv4 ? 0x01 : 0x02, 0);
 
   const $port = Buffer.alloc(2);
   $port.writeUInt16BE(port, 0);
   const $xport = bufferXor($port, $magicCookie.slice(0, 2));
 
   const $address = nodeIp.toBuffer(address);
-  const $xaddress = bufferXor($address, $magicCookie);
+  const $xaddress = isIPv4
+    ? bufferXor($address, $magicCookie)
+    : bufferXor($address, Buffer.concat([$magicCookie, $transactionId]));
 
   const $xorMappedAddress = createAttr(
     0x0020,

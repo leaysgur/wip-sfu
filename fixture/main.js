@@ -49,9 +49,8 @@ function extractIceParams(sdp) {
   return params;
 }
 
-function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidate }) {
+function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidates }) {
   const { usernameFragment, password } = iceParams;
-  const candidate = iceCandidate;
 
   let sdpLines = offerSdp.split('\r\n');
 
@@ -80,11 +79,17 @@ function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidate }) {
   sdpLines.push(
     `a=ice-ufrag:${usernameFragment}`,
     `a=ice-pwd:${password}`,
-    `a=candidate:${candidate.foundation} ${candidate.component} ${
-      candidate.protocol
-    } ${candidate.priority} ${candidate.address} ${candidate.port} typ ${
-      candidate.type
-    }`,
+  );
+  for (const candidate of iceCandidates) {
+    sdpLines.push(
+      `a=candidate:${candidate.foundation} ${candidate.component} ${
+        candidate.protocol
+      } ${candidate.priority} ${candidate.address} ${candidate.port} typ ${
+        candidate.type
+      }`,
+    );
+  }
+  sdpLines.push(
     'a=end-of-candidates',
     '',
   );

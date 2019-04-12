@@ -8,46 +8,53 @@ const debug = _debug('connection');
 
 export interface ConnectParams {
   iceParams: IceParams;
-  iceCandidate: IceCandidate;
+  iceCandidates: IceCandidate[];
 }
 
 export class Connection {
-  private address: string;
-  private udpSocket: Socket;
+  private aInfos: AddressInfo[];
+  private udpSockets: Socket[];
   private iceServer: IceLiteServer;
 
-  constructor(address: string) {
+  constructor(aInfos: AddressInfo[]) {
     debug('constructor()');
-    this.address = address;
 
-    this.udpSocket = dgram.createSocket('udp4');
+    this.aInfos = aInfos;
+    this.udpSockets = [];
     this.iceServer = new IceLiteServer();
   }
 
   async start(remoteIceParams: IceParams): Promise<ConnectParams> {
     debug('start()', remoteIceParams);
-    await this.bindUdpSocket(this.udpSocket, this.address);
-    this.udpSocket.on('message', this.handlePacket.bind(this));
 
-    const aInfo = this.udpSocket.address() as AddressInfo;
-    debug('bind UDP socket', aInfo);
+    for (const aInfo of this.aInfos) {
+      const type = aInfo.family === 'IPv4' ? 'udp4' : 'udp6';
+      const udpSocket = dgram.createSocket(type);
+      await this.bindUdpSocket(udpSocket, aInfo);
+      udpSocket.on('message', ($packet: Buffer, rInfo: RemoteInfo) =>
+        this.handlePacket($packet, rInfo, udpSocket),
+      );
+      this.udpSockets.push(udpSocket);
+      debug('bind UDP socket', aInfo);
+    }
 
-    this.iceServer.start(aInfo, remoteIceParams);
+    const boundAddressInfo = this.udpSockets.map(
+      udpSocket => udpSocket.address() as AddressInfo,
+    );
+    this.iceServer.start(boundAddressInfo, remoteIceParams);
 
     return {
       iceParams: this.iceServer.getLocalParameters(),
-      iceCandidate: this.iceServer.getLocalCandidate(),
+      iceCandidates: this.iceServer.getLocalCandidates(),
     };
   }
 
   // See https://tools.ietf.org/html/rfc7983#section-7
-  handlePacket($packet: Buffer, rInfo: RemoteInfo) {
+  handlePacket($packet: Buffer, rInfo: RemoteInfo, udpSocket: Socket) {
     switch (true) {
       case $packet[0] >= 0 && $packet[0] <= 3: {
         const $res = this.iceServer.handleStunPacket($packet, rInfo);
-        $res && this.udpSocket.send($res, rInfo.port, rInfo.address);
-        // TODO: remove
-        // $res && this.udpSocket.send($res, 55555);
+        $res && udpSocket.send($res, rInfo.port, rInfo.address);
         break;
       }
       case $packet[0] >= 20 && $packet[0] <= 63: {
@@ -63,10 +70,10 @@ export class Connection {
     }
   }
 
-  private bindUdpSocket(sock: Socket, address: string): Promise<void> {
+  private bindUdpSocket(sock: Socket, aInfo: AddressInfo): Promise<void> {
     return new Promise((resolve, reject) => {
       sock.once('error', reject);
-      sock.bind(0, address, () => {
+      sock.bind(aInfo.port, aInfo.address, () => {
         sock.removeListener('error', reject);
         resolve();
       });

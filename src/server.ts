@@ -1,5 +1,6 @@
 import * as http from 'http';
 import { IncomingMessage, ServerResponse, Server } from 'http';
+import { AddressInfo } from 'net';
 import _debug from 'debug';
 import { IceParams } from './ice';
 import { Connection, ConnectParams } from './connection';
@@ -7,9 +8,8 @@ import { Connection, ConnectParams } from './connection';
 const debug = _debug('server');
 
 export interface SfuServerOptions {
-  httpPort: number;
-  httpAddress: string;
-  sfuAddress: string;
+  http: AddressInfo;
+  sfu: AddressInfo[];
 }
 
 export class SfuServer {
@@ -48,7 +48,7 @@ export class SfuServer {
 
   async start() {
     debug('start()');
-    this.httpServer.listen(this.options.httpPort, this.options.httpAddress);
+    this.httpServer.listen(this.options.http);
   }
 
   stop() {
@@ -67,7 +67,7 @@ export class SfuServer {
 
     debug('handlePublish()', id);
 
-    const conn = new Connection(this.options.sfuAddress);
+    const conn = new Connection(this.options.sfu);
     const connParams = (await conn
       .start(remoteIceParams)
       .catch(console.error)) as ConnectParams;
