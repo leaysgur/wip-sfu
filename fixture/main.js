@@ -26,9 +26,9 @@ $sendOffer.onclick = async () => {
   Object.entries(iceParams).forEach(([key, val]) => url.searchParams.append(key, val));
 
   const connParams = await fetch(url.toString(), { mode: 'cors' }).then(res => res.json());
-  const answer = paramsToAnswerSDP(pc.localDescription.sdp, connParams);
-  console.log(answer);
-  await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer }));
+  const answer = await paramsToAnswerSDP(pc.localDescription, connParams);
+  console.log(answer.sdp);
+  await pc.setRemoteDescription(answer);
 };
 
 function extractIceParams(sdp) {
@@ -49,63 +49,35 @@ function extractIceParams(sdp) {
   return params;
 }
 
-function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidates }) {
+async function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidates }) {
+  // use fake pc to generate answer SDP
+  const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+  await pc.setRemoteDescription(offerSdp);
+  const answer = await pc.createAnswer();
+  pc.close();
+
   const { usernameFragment, password } = iceParams;
 
-  let sdpLines = offerSdp.split('\r\n');
+  let sdpLines = answer.sdp.split('\r\n');
 
-  const mLine = sdpLines.find(line => line.startsWith('m='));
-  const [mMain, , , mRtpmapVal] = mLine.split(' ');
-  const fixedMLine = [mMain, '7', 'RTP/SAVPF', mRtpmapVal].join(' ');
+  // add
+  sdpLines.splice(4, 0, 'a=ice-lite');
 
+  // mod
   sdpLines = sdpLines.map(line => {
-    if (line.startsWith('a=send')) {
-      return 'a=recvonly';
+    if (line.startsWith('a=ice-ufrag')) {
+      return `a=ice-ufrag:${usernameFragment}`;
     }
-    if (line.startsWith('a=setup')) {
-      return 'a=setup:passive';
+    if (line.startsWith('a=ice-pwd')) {
+      return `a=ice-pwd:${password}`;
     }
-    if (line.startsWith('m=')) {
-      return fixedMLine;
-    }
-    if (line.startsWith('c=')) {
-      return 'c=IN IP4 127.0.0.1';
-    }
-    if (line.startsWith('a=rtpmap')) {
-      if (line.startsWith(`a=rtpmap:${mRtpmapVal}`)) {
-        return line;
-      }
-        return '';
-
-    }
-    if (
-      line.startsWith('a=candidate') ||
-      line.startsWith('a=ice-') ||
-      line.startsWith('a=msid') ||
-      line.startsWith('a=extmap') ||
-      line.startsWith('a=fmtp') ||
-      line.startsWith('a=rtcp') ||
-      line.startsWith('a=fingerprint') ||
-      line.startsWith('a=ssrc')
-    ) {
+    if (line.startsWith('a=ice-options')) {
       return '';
     }
     return line;
   }).filter(Boolean);
 
-  // pretend ICE-Lite server
-  sdpLines.splice(4, 0,
-    // TODO: enable this ends up w/ missing USE-CANDIDATE...
-    // 'a=ice-lite',
-    // tslint:disable-next-line:max-line-length
-    'a=fingerprint:sha-512 12:DC:40:86:73:D6:F0:29:60:08:92:E4:14:52:E7:58:12:B5:A5:A5:6C:75:29:34:F9:EF:72:8B:06:C4:D8:B2:D0:A8:F9:CD:42:CC:05:B2:57:76:19:82:4E:14:90:84:68:96:64:D2:C8:76:55:CA:C5:3C:82:0E:54:14:85:60',
-    'a=msid-semantic: WMS *',
-  );
-
-  sdpLines.push(
-    `a=ice-ufrag:${usernameFragment}`,
-    `a=ice-pwd:${password}`,
-  );
+  // add
   for (const candidate of iceCandidates) {
     sdpLines.push(
       `a=candidate:${candidate.foundation} ${candidate.component} ${
@@ -117,10 +89,10 @@ function paramsToAnswerSDP(offerSdp, { iceParams, iceCandidates }) {
   }
   sdpLines.push(
     'a=end-of-candidates',
-    'a=rtcp-mux',
     'a=rtcp-rsize',
     '',
   );
 
-  return sdpLines.join('\r\n');
+  answer.sdp = sdpLines.join('\r\n');
+  return answer;
 }
