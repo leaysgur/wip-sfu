@@ -30,14 +30,17 @@ export function createUdpHostCandidate(
   // prefer IPv4
   const localPref = isIPv4 ? LOCAL_PREF : LOCAL_PREF - 1000;
   const priority =
-    (2 ^ 24) * TYPE_PREF_HOST + (2 ^ 8) * localPref + (2 ^ 0) * COMPONENT_ID;
+    2 ** 24 * TYPE_PREF_HOST +
+    2 ** 8 * localPref +
+    2 ** 0 * (256 - COMPONENT_ID) -
+    idx * 100;
 
   return {
     type: 'host',
     protocol: 'udp',
     foundation: `udp-${isIPv4 ? 4 : 6}-host-candidate`,
     component: COMPONENT_ID,
-    priority: priority - idx * 100,
+    priority,
     usernameFragment,
     address,
     port,
