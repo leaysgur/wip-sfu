@@ -2,6 +2,7 @@ const [$captureMedia, $createPc, $createOffer, $sendOffer] = document.querySelec
 
 let pc;
 let stream;
+let sender;
 $captureMedia.onclick = async () => {
   stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   console.log(stream);
@@ -9,14 +10,15 @@ $captureMedia.onclick = async () => {
 $createPc.onclick = async () => {
   window.pc = pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
   pc.oniceconnectionstatechange = () => console.warn('iceConnectionState', pc.iceConnectionState);
-  pc.onconnectionstatechange = () => console.warn('connectionState', pc.connectionState);
   console.log(pc);
 };
 $createOffer.onclick = async () => {
-  pc.addTransceiver(stream.getAudioTracks()[0], { direction: 'sendonly' });
+  const transceiver = pc.addTransceiver(stream.getAudioTracks()[0], { direction: 'sendonly' });
   const offer = await pc.createOffer();
-  console.log(offer.sdp);
   await pc.setLocalDescription(offer);
+  await waitGatheringCandidates(pc);
+  console.log(pc.localDescription.sdp);
+  window.sender = sender = transceiver.sender;
 };
 $sendOffer.onclick = async () => {
   const url = new URL('http://127.0.0.1:9001/publish');
@@ -29,7 +31,22 @@ $sendOffer.onclick = async () => {
   const answer = await paramsToAnswerSDP(pc.localDescription, connParams);
   console.log(answer.sdp);
   await pc.setRemoteDescription(answer);
+  console.log(sender.transport);
 };
+
+async function waitGatheringCandidates(pc) {
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete') {
+      return res();
+    }
+
+    pc.onicecandidate = ev => {
+      if (ev.candidate === null) {
+        res();
+      }
+    };
+  });
+}
 
 function extractIceParams(sdp) {
   const params = {
