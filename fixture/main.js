@@ -13,10 +13,12 @@ $createPc.onclick = async () => {
   console.log(pc);
 };
 $createOffer.onclick = async () => {
-  const transceiver = pc.addTransceiver(stream.getAudioTracks()[0], { direction: 'sendonly' });
+  const transceiver = pc.addTransceiver(stream.getAudioTracks()[0], {
+    direction: 'sendonly',
+    streams: [stream],
+  });
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
-  await waitGatheringCandidates(pc);
   console.log(pc.localDescription.sdp);
   window.sender = sender = transceiver.sender;
 };
@@ -33,20 +35,6 @@ $sendOffer.onclick = async () => {
   await pc.setRemoteDescription(answer);
   console.log(sender.transport);
 };
-
-async function waitGatheringCandidates(pc) {
-  return new Promise(res => {
-    if (pc.iceGatheringState === 'complete') {
-      return res();
-    }
-
-    pc.onicecandidate = ev => {
-      if (ev.candidate === null) {
-        res();
-      }
-    };
-  });
-}
 
 function extractIceParams(sdp) {
   const params = {
