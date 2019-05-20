@@ -1,4 +1,4 @@
-import { calcPaddingByte } from './utils';
+import { calcPaddingByte } from "./utils";
 
 export interface StunAttrs {
   username?: string;
@@ -10,7 +10,7 @@ export interface StunAttrs {
 }
 
 export function parseAttrs($attrs: Buffer): StunAttrs | null {
-  const attrs = {} as StunAttrs;
+  const attrs: StunAttrs = {};
 
   let offset = 0;
   while (offset < $attrs.length) {

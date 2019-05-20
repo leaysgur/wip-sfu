@@ -1,5 +1,5 @@
-import { createHmac } from 'crypto';
-import * as crc32 from 'buffer-crc32';
+import { createHmac } from "crypto";
+import * as crc32 from "buffer-crc32";
 
 /**
  * Calculate padding bytes
@@ -18,7 +18,7 @@ export function calcPaddingByte(curByte: number, boundaryByte: number): number {
 
 export function bufferXor(a: Buffer, b: Buffer): Buffer {
   if (a.length !== b.length) {
-    throw new TypeError('You can not XOR buffers which length are different');
+    throw new TypeError("You can not XOR buffers which length are different");
   }
 
   const length = a.length;
@@ -49,19 +49,19 @@ export function createAttr(type: number, $value: Buffer): Buffer {
 export function generateFingerprint($msg: Buffer): Buffer {
   // without FINGERPRINT: 8byte(header: 4byte + value: 4byte(32bit))
   const $crc32 = crc32($msg.slice(0, -8));
-  return bufferXor($crc32, Buffer.from('5354554e', 'hex'));
+  return bufferXor($crc32, Buffer.from("5354554e", "hex"));
 }
 
 export function generateIntegrity($msg: Buffer, integrityKey: string): Buffer {
   // without MESSAGE-INTEGRITY: 24byte(header: 4byte + value: 20byte(sha1))
-  return createHmac('sha1', integrityKey)
+  return createHmac("sha1", integrityKey)
     .update($msg.slice(0, -24))
     .digest();
 }
 
 export function generateIntegrityWithFingerprint(
   $msg: Buffer,
-  integrityKey: string,
+  integrityKey: string
 ): Buffer {
   // modify header length to ignore FINGERPRINT(8byte)
   const msgLen = $msg.readUInt16BE(2);
@@ -69,7 +69,7 @@ export function generateIntegrityWithFingerprint(
 
   // without 32byte MESSAGE-INTEGRITY(24byte)
   // + FINGERPRINT: 8byte = (header: 4byte + value: 4byte)
-  return createHmac('sha1', integrityKey)
+  return createHmac("sha1", integrityKey)
     .update($msg.slice(0, -32))
     .digest();
 }

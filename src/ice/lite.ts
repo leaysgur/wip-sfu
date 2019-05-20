@@ -1,15 +1,15 @@
-import { AddressInfo } from 'net';
-import { RemoteInfo } from 'dgram';
-import _debug from 'debug';
-import { createUdpHostCandidate, IceCandidate } from './candidate';
-import { generateIceChars } from './utils';
+import { AddressInfo } from "net";
+import { RemoteInfo } from "dgram";
+import _debug from "debug";
+import { createUdpHostCandidate, IceCandidate } from "./candidate";
+import { generateIceChars } from "./utils";
 import {
   parseMessage,
   isConnectivityCheck,
-  createSuccessResponseForConnectivityCheck,
-} from './stun';
+  createSuccessResponseForConnectivityCheck
+} from "./stun";
 
-const debug = _debug('ice-lite');
+const debug = _debug("ice-lite");
 
 export interface IceParams {
   usernameFragment: string;
@@ -24,32 +24,32 @@ export class IceLiteServer {
   constructor() {
     this.localParams = {
       usernameFragment: generateIceChars(4),
-      password: generateIceChars(22),
+      password: generateIceChars(22)
     };
     this.remoteParams = null;
     this.candidates = [];
 
-    debug('constructor()', this.getLocalParameters());
+    debug("constructor()", this.getLocalParameters());
   }
 
   start(aInfos: AddressInfo[], remoteIceParams: IceParams) {
-    debug('start()');
+    debug("start()");
     this.remoteParams = remoteIceParams;
 
     aInfos.forEach((aInfo, idx) => {
       this.candidates.push(
-        createUdpHostCandidate(this.localParams.usernameFragment, aInfo, idx),
+        createUdpHostCandidate(this.localParams.usernameFragment, aInfo, idx)
       );
     });
   }
 
   stop() {
-    debug('stop()');
+    debug("stop()");
     this.candidates = [];
   }
 
   handleStunPacket($packet: Buffer, rInfo: RemoteInfo): Buffer | null {
-    debug('handleStunPacket()', rInfo);
+    debug("handleStunPacket()", rInfo);
 
     // if we are not ready
     if (!(this.candidates.length !== 0 && this.remoteParams !== null)) {
@@ -64,15 +64,15 @@ export class IceLiteServer {
 
     // validate by ICE usage
     if (!msg.attrs.iceControlling) {
-      debug('client must be an ICE-CONTROLLING, discard');
+      debug("client must be an ICE-CONTROLLING, discard");
       return null;
     }
     const validUsername =
       this.localParams.usernameFragment +
-      ':' +
+      ":" +
       this.remoteParams.usernameFragment;
     if (msg.attrs.username !== validUsername) {
-      debug('USERNAME is invalid, discard');
+      debug("USERNAME is invalid, discard");
       return null;
     }
     if (!isConnectivityCheck(msg, $packet, this.localParams.password)) {
@@ -80,7 +80,7 @@ export class IceLiteServer {
     }
 
     if (msg.attrs.useCandidate) {
-      debug('receive USE-CANDIDATE');
+      debug("receive USE-CANDIDATE");
       // this.stateChange('');
     }
 
@@ -88,7 +88,7 @@ export class IceLiteServer {
       msg.header.transactionId,
       this.remoteParams.password,
       rInfo.address,
-      rInfo.port,
+      rInfo.port
     );
 
     return $res;
@@ -97,7 +97,7 @@ export class IceLiteServer {
   getLocalParameters(): IceParams {
     return {
       usernameFragment: this.localParams.usernameFragment,
-      password: this.localParams.password,
+      password: this.localParams.password
     };
   }
 

@@ -4,7 +4,7 @@
   "description": ":wip:",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint .",
+    "lint": "eslint --ext .ts . && tsc --project . --noEmit",
     "start": "nodemon & http-server -p 9000 ./fixture & wait"
   },
   "repository": {

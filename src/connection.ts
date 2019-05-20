@@ -1,10 +1,10 @@
-import { AddressInfo } from 'net';
-import * as dgram from 'dgram';
-import { Socket, RemoteInfo } from 'dgram';
-import _debug from 'debug';
-import { IceLiteServer, IceParams, IceCandidate } from './ice';
+import { AddressInfo } from "net";
+import * as dgram from "dgram";
+import { Socket, RemoteInfo } from "dgram";
+import _debug from "debug";
+import { IceLiteServer, IceParams, IceCandidate } from "./ice";
 
-const debug = _debug('connection');
+const debug = _debug("connection");
 
 export interface ConnectParams {
   iceParams: IceParams;
@@ -17,7 +17,7 @@ export class Connection {
   private iceServer: IceLiteServer;
 
   constructor(aInfos: AddressInfo[]) {
-    debug('constructor()');
+    debug("constructor()");
 
     this.aInfos = aInfos;
     this.udpSockets = [];
@@ -25,28 +25,28 @@ export class Connection {
   }
 
   async start(remoteIceParams: IceParams): Promise<ConnectParams> {
-    debug('start()', remoteIceParams);
+    debug("start()", remoteIceParams);
 
     for (const aInfo of this.aInfos) {
-      const type = aInfo.family === 'IPv4' ? 'udp4' : 'udp6';
+      const type = aInfo.family === "IPv4" ? "udp4" : "udp6";
       const udpSocket = dgram.createSocket(type);
       await this.bindUdpSocket(udpSocket, aInfo);
-      udpSocket.on('message', ($packet: Buffer, rInfo: RemoteInfo) =>
-        this.handlePacket($packet, rInfo, udpSocket),
+      udpSocket.on("message", ($packet: Buffer, rInfo: RemoteInfo) =>
+        this.handlePacket($packet, rInfo, udpSocket)
       );
       this.udpSockets.push(udpSocket);
-      debug('bind UDP socket', aInfo);
+      debug("bind UDP socket", aInfo);
     }
 
     // update aInfos
     this.aInfos = this.udpSockets.map(
-      udpSocket => udpSocket.address() as AddressInfo,
+      udpSocket => udpSocket.address() as AddressInfo
     );
     this.iceServer.start(this.aInfos, remoteIceParams);
 
     return {
       iceParams: this.iceServer.getLocalParameters(),
-      iceCandidates: this.iceServer.getLocalCandidates(),
+      iceCandidates: this.iceServer.getLocalCandidates()
     };
   }
 
@@ -59,23 +59,23 @@ export class Connection {
         break;
       }
       case $packet[0] >= 20 && $packet[0] <= 63: {
-        debug('handle dtls packet');
+        debug("handle dtls packet");
         break;
       }
       case $packet[0] >= 128 && $packet[0] <= 191: {
-        debug('handle rtp/rtcp packet');
+        debug("handle rtp/rtcp packet");
         break;
       }
       default:
-        debug('discard unknown packet');
+        debug("discard unknown packet");
     }
   }
 
   private bindUdpSocket(sock: Socket, aInfo: AddressInfo): Promise<void> {
     return new Promise((resolve, reject) => {
-      sock.once('error', reject);
+      sock.once("error", reject);
       sock.bind(aInfo.port, aInfo.address, () => {
-        sock.removeListener('error', reject);
+        sock.removeListener("error", reject);
         resolve();
       });
     });

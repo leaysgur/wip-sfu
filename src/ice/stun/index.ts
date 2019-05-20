@@ -1,17 +1,17 @@
-import * as net from 'net';
-import * as nodeIp from 'ip';
-import _debug from 'debug';
-import { parseHeader, StunHeader } from './header';
-import { parseAttrs, StunAttrs } from './attrs';
+import * as net from "net";
+import * as nodeIp from "ip";
+import _debug from "debug";
+import { parseHeader, StunHeader } from "./header";
+import { parseAttrs, StunAttrs } from "./attrs";
 import {
   generateFingerprint,
   generateIntegrity,
   generateIntegrityWithFingerprint,
   bufferXor,
-  createAttr,
-} from './utils';
+  createAttr
+} from "./utils";
 
-const debug = _debug('stun');
+const debug = _debug("stun");
 
 export interface StunMessage {
   header: StunHeader;
@@ -21,7 +21,7 @@ export interface StunMessage {
 export function parseMessage($packet: Buffer): StunMessage | null {
   const packetLen = $packet.length;
   if (packetLen < 20) {
-    debug('header length must be 20, discard');
+    debug("header length must be 20, discard");
     return null;
   }
 
@@ -35,13 +35,13 @@ export function parseMessage($packet: Buffer): StunMessage | null {
 
   // validate by STUN usage
   if (header.length + 20 !== packetLen) {
-    debug('header.length is invalid, discard');
+    debug("header.length is invalid, discard");
     return null;
   }
 
   const attrs = parseAttrs($attrs);
   if (attrs === null) {
-    debug('error thrown while parsing attrs, discard');
+    debug("error thrown while parsing attrs, discard");
     return null;
   }
 
@@ -52,32 +52,32 @@ export function parseMessage($packet: Buffer): StunMessage | null {
 export function isConnectivityCheck(
   msg: StunMessage,
   $packet: Buffer,
-  integrityKey: string,
+  integrityKey: string
 ): boolean {
   if (msg.header.type !== 0x0001) {
-    debug('not a BINDING-REQUEST, discard');
+    debug("not a BINDING-REQUEST, discard");
     return false;
   }
 
   if (!msg.attrs.username) {
-    debug('client must have a USERNAME, discard');
+    debug("client must have a USERNAME, discard");
     return false;
   }
 
   if (!(msg.attrs.fingerprint && msg.attrs.messageIntegrity)) {
-    debug('both FINGERPRINT and MESSAGE-INTEGRITY are not found, discard');
+    debug("both FINGERPRINT and MESSAGE-INTEGRITY are not found, discard");
     return false;
   }
 
   const $fingerprint = generateFingerprint($packet);
   if (!$fingerprint.equals(msg.attrs.fingerprint)) {
-    debug('FINGERPRINT missmatch, discard');
+    debug("FINGERPRINT missmatch, discard");
     return false;
   }
 
   const $integrity = generateIntegrityWithFingerprint($packet, integrityKey);
   if (!$integrity.equals(msg.attrs.messageIntegrity)) {
-    debug('MESSAGE-INTEGRITY missmatch, discard');
+    debug("MESSAGE-INTEGRITY missmatch, discard");
     return false;
   }
 
@@ -89,7 +89,7 @@ export function createSuccessResponseForConnectivityCheck(
   transactionId: string,
   integrityKey: string,
   address: string,
-  port: number,
+  port: number
 ): Buffer {
   // header
   const $type = Buffer.alloc(2);
@@ -102,7 +102,7 @@ export function createSuccessResponseForConnectivityCheck(
   $magicCookie.writeInt32BE(0x2112a442, 0);
 
   const $transactionId = Buffer.alloc(12);
-  $transactionId.write(transactionId, 0, 12, 'hex');
+  $transactionId.write(transactionId, 0, 12, "hex");
 
   const $header = Buffer.concat([$type, $length, $magicCookie, $transactionId]);
 
@@ -123,7 +123,7 @@ export function createSuccessResponseForConnectivityCheck(
 
   const $xorMappedAddress = createAttr(
     0x0020,
-    Buffer.concat([$family, $xport, $xaddress]),
+    Buffer.concat([$family, $xport, $xaddress])
   );
   const xMALen = $xorMappedAddress.length;
   const mILen = 24; // 4 + 20
@@ -148,7 +148,7 @@ export function createSuccessResponseForConnectivityCheck(
     $header,
     $xorMappedAddress,
     $messageIntegrity,
-    Buffer.alloc(fLen),
+    Buffer.alloc(fLen)
   ]);
 
   // update w/ correct value
@@ -158,7 +158,7 @@ export function createSuccessResponseForConnectivityCheck(
     $header,
     $xorMappedAddress,
     $messageIntegrity,
-    $fingerprint,
+    $fingerprint
   ]);
 
   return $res;

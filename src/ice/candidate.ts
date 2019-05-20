@@ -1,4 +1,4 @@
-import { AddressInfo } from 'net';
+import { AddressInfo } from "net";
 
 const TYPE_PREF_HOST = 126;
 const LOCAL_PREF = 65535; // IPv4
@@ -16,16 +16,16 @@ export interface IceCandidate {
 }
 
 interface UdpHostCandidate extends IceCandidate {
-  type: 'host';
-  protocol: 'udp';
+  type: "host";
+  protocol: "udp";
 }
 
 export function createUdpHostCandidate(
   usernameFragment: string,
   { address, port, family }: AddressInfo,
-  idx: number,
+  idx: number
 ): UdpHostCandidate {
-  const isIPv4 = family === 'IPv4';
+  const isIPv4 = family === "IPv4";
 
   // prefer IPv4
   const localPref = isIPv4 ? LOCAL_PREF : LOCAL_PREF - 1000;
@@ -36,13 +36,13 @@ export function createUdpHostCandidate(
     idx * 100;
 
   return {
-    type: 'host',
-    protocol: 'udp',
+    type: "host",
+    protocol: "udp",
     foundation: `udp-${isIPv4 ? 4 : 6}-host-candidate`,
     component: COMPONENT_ID,
     priority,
     usernameFragment,
     address,
-    port,
+    port
   };
 }

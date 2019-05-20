@@ -1,18 +1,18 @@
-import { SfuServer } from './server';
+import { SfuServer } from "./server";
 
 (async function() {
   const sfuServer = new SfuServer({
     http: {
-      family: 'IPv4',
-      address: '127,0,0,1',
-      port: 9001,
+      family: "IPv4",
+      address: "127,0,0,1",
+      port: 9001
     },
     sfu: [
       {
-        family: 'IPv4',
-        address: '127.0.0.1',
-        port: 0,
-      },
+        family: "IPv4",
+        address: "127.0.0.1",
+        port: 0
+      }
       // {
       //   family: 'IPv4',
       //   address: '0.0.0.0',
@@ -23,7 +23,7 @@ import { SfuServer } from './server';
       //   address: '::1',
       //   port: 0,
       // },
-    ],
+    ]
   });
 
   await sfuServer.start().catch(err => {
