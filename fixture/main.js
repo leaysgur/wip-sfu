@@ -104,12 +104,15 @@ a=rtcp-rsize
       line = `a=ice-pwd:${password}`;
     }
     if (line.startsWith("a=candidate")) {
-      const candidate = iceCandidates[0];
-      line = `a=candidate:${candidate.foundation} ${candidate.component} ${
-        candidate.protocol
-      } ${candidate.priority} ${candidate.address} ${candidate.port} typ ${
-        candidate.type
-      }`;
+      for (const candidate of iceCandidates) {
+        line = `a=candidate:${candidate.foundation} ${candidate.component} ${
+          candidate.protocol
+        } ${candidate.priority} ${candidate.address} ${candidate.port} typ ${
+          candidate.type
+        }`;
+        answerLines.push(line);
+      }
+      continue;
     }
     if (line.startsWith("c=IN")) {
       const candidate = iceCandidates[0];
