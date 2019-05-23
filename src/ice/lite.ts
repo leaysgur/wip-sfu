@@ -38,7 +38,7 @@ export class IceLiteServer {
         const $res = this.handleStunPacket($packet, rInfo);
         $res && udpSocket.send($res, rInfo);
 
-        // TODO: send success response means use-candidate = close another sockets
+        // TODO: send success response means this remote candidate can be valid tuple
       });
     }
 
