@@ -4,14 +4,14 @@ import { Socket, RemoteInfo } from "dgram";
 import _debug from "debug";
 import { IceLiteServer, IceParams, IceCandidate } from "./ice";
 
-const debug = _debug("connection");
+const debug = _debug("transport");
 
-export interface ConnectParams {
+interface TransportParams {
   iceParams: IceParams;
   iceCandidates: IceCandidate[];
 }
 
-export class Connection {
+export class Transport {
   private aInfos: AddressInfo[];
   private udpSockets: Socket[];
   private iceServer: IceLiteServer;
@@ -24,7 +24,7 @@ export class Connection {
     this.iceServer = new IceLiteServer();
   }
 
-  async start(remoteIceParams: IceParams): Promise<ConnectParams> {
+  async start(remoteIceParams: IceParams): Promise<void> {
     debug("start()", remoteIceParams);
 
     for (const aInfo of this.aInfos) {
@@ -43,7 +43,9 @@ export class Connection {
       udpSocket => udpSocket.address() as AddressInfo
     );
     this.iceServer.start(this.aInfos, remoteIceParams);
+  }
 
+  getParams(): TransportParams {
     return {
       iceParams: this.iceServer.getLocalParameters(),
       iceCandidates: this.iceServer.getLocalCandidates()

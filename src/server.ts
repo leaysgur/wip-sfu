@@ -3,7 +3,7 @@ import { IncomingMessage, ServerResponse, Server } from "http";
 import { AddressInfo } from "net";
 import _debug from "debug";
 import { IceParams } from "./ice";
-import { Connection, ConnectParams } from "./connection";
+import { Transport } from "./transport";
 
 const debug = _debug("server");
 
@@ -15,13 +15,13 @@ export interface SfuServerOptions {
 export class SfuServer {
   private options: SfuServerOptions;
   private httpServer: Server;
-  private pubConnections: Map<string, Connection>;
+  private pubTransports: Map<string, Transport>;
 
   constructor(options: SfuServerOptions) {
     debug("constructor()", options);
     this.options = options;
 
-    this.pubConnections = new Map();
+    this.pubTransports = new Map();
 
     this.httpServer = http.createServer(
       (req: IncomingMessage, res: ServerResponse) => {
@@ -72,15 +72,14 @@ export class SfuServer {
 
     debug("handlePublish()", id);
 
-    const conn = new Connection(this.options.sfu);
-
     try {
-      const connParams = (await conn.start(remoteIceParams)) as ConnectParams;
+      const transport = new Transport(this.options.sfu);
+      await transport.start(remoteIceParams);
+      this.pubTransports.set(id, transport);
 
-      this.pubConnections.set(id, conn);
-
+      const transportParams = transport.getParams();
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(connParams));
+      res.end(JSON.stringify(transportParams));
     } catch (err) {
       res.writeHead(500);
       res.end(err.toString());
