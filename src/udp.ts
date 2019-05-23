@@ -11,6 +11,7 @@ export class UdpSocket extends EventEmitter {
 
   constructor(aInfo: AddressInfo) {
     super();
+    this.setMaxListeners(Infinity);
 
     const type = aInfo.family === "IPv4" ? "udp4" : "udp6";
     this.sock = dgram.createSocket(type);
@@ -40,10 +41,12 @@ export class UdpSocket extends EventEmitter {
       }
       case $packet[0] >= 20 && $packet[0] <= 63: {
         debug("handle dtls packet");
+        this.emit("dtls", $packet, rInfo);
         break;
       }
       case $packet[0] >= 128 && $packet[0] <= 191: {
-        debug("handle rtp/rtcp packet");
+        debug("handle rtp+rtcp packet");
+        this.emit("rtp+rtcp", $packet, rInfo);
         break;
       }
       default:
