@@ -73,8 +73,8 @@ export class SfuServer {
     debug("handlePublish()", id);
 
     try {
-      const transport = new Transport(this.options.sfu);
-      await transport.start(remoteIceParams);
+      const transport = new Transport();
+      await transport.start(this.options.sfu, remoteIceParams);
       this.pubTransports.set(id, transport);
 
       const transportParams = transport.getParams();

@@ -1,4 +1,3 @@
-import { AddressInfo } from "net";
 import { RemoteInfo } from "dgram";
 import _debug from "debug";
 import { createUdpHostCandidate, IceCandidate } from "./candidate";
@@ -8,6 +7,7 @@ import {
   isConnectivityCheck,
   createSuccessResponseForConnectivityCheck
 } from "./stun";
+import { UdpSocket } from "../udp";
 
 const debug = _debug("ice-lite");
 
@@ -18,34 +18,31 @@ export interface IceParams {
 
 export class IceLiteServer {
   private localParams: IceParams;
-  private remoteParams: IceParams | null;
+  private remoteParams: IceParams;
   private candidates: IceCandidate[];
 
-  constructor() {
+  constructor(udpSockets: UdpSocket[], remoteIceParams: IceParams) {
     this.localParams = {
       usernameFragment: generateIceChars(4),
       password: generateIceChars(22)
     };
-    this.remoteParams = null;
-    this.candidates = [];
-
-    debug("constructor()", this.getLocalParameters());
-  }
-
-  start(aInfos: AddressInfo[], remoteIceParams: IceParams) {
-    debug("start()");
     this.remoteParams = remoteIceParams;
 
-    aInfos.forEach((aInfo, idx) => {
-      this.candidates.push(
-        createUdpHostCandidate(this.localParams.usernameFragment, aInfo, idx)
-      );
-    });
-  }
+    const aInfos = udpSockets.map(sock => sock.address);
+    this.candidates = aInfos.map((aInfo, idx) =>
+      createUdpHostCandidate(this.localParams.usernameFragment, aInfo, idx)
+    );
 
-  stop() {
-    debug("stop()");
-    this.candidates = [];
+    for (const udpSocket of udpSockets) {
+      udpSocket.on("stun", ($packet: Buffer, rInfo: RemoteInfo) => {
+        const $res = this.handleStunPacket($packet, rInfo);
+        $res && udpSocket.send($res, rInfo);
+
+        // TODO: send success response means use-candidate = close another sockets
+      });
+    }
+
+    debug("constructor()", this.getLocalParameters());
   }
 
   handleStunPacket($packet: Buffer, rInfo: RemoteInfo): Buffer | null {
@@ -81,7 +78,7 @@ export class IceLiteServer {
 
     if (msg.attrs.useCandidate) {
       debug("receive USE-CANDIDATE");
-      // this.stateChange('');
+      // TODO: connected -> completed
     }
 
     const $res = createSuccessResponseForConnectivityCheck(

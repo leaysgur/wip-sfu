@@ -1,8 +1,7 @@
 import { AddressInfo } from "net";
-import * as dgram from "dgram";
-import { Socket, RemoteInfo } from "dgram";
 import _debug from "debug";
 import { IceLiteServer, IceParams, IceCandidate } from "./ice";
+import { UdpSocket } from "./udp";
 
 const debug = _debug("transport");
 
@@ -12,74 +11,47 @@ interface TransportParams {
 }
 
 export class Transport {
-  private aInfos: AddressInfo[];
-  private udpSockets: Socket[];
-  private iceServer: IceLiteServer;
+  private udpSockets: UdpSocket[];
+  private iceServer: IceLiteServer | null;
 
-  constructor(aInfos: AddressInfo[]) {
+  constructor() {
     debug("constructor()");
 
-    this.aInfos = aInfos;
     this.udpSockets = [];
-    this.iceServer = new IceLiteServer();
+    this.iceServer = null;
   }
 
-  async start(remoteIceParams: IceParams): Promise<void> {
+  async start(
+    aInfos: AddressInfo[],
+    remoteIceParams: IceParams
+  ): Promise<void> {
     debug("start()", remoteIceParams);
 
-    for (const aInfo of this.aInfos) {
-      const type = aInfo.family === "IPv4" ? "udp4" : "udp6";
-      const udpSocket = dgram.createSocket(type);
-      await this.bindUdpSocket(udpSocket, aInfo);
-      udpSocket.on("message", ($packet: Buffer, rInfo: RemoteInfo) =>
-        this.handlePacket($packet, rInfo, udpSocket)
-      );
+    const boundAInfos = [];
+    // bind UDP sockets
+    for (const aInfo of aInfos) {
+      // TODO: pass remote aInfo to ensure unicast
+      const udpSocket = new UdpSocket(aInfo);
+      const boundAInfo = await udpSocket.bind(aInfo);
+      debug("bound UDP socket", boundAInfo);
+
       this.udpSockets.push(udpSocket);
-      debug("bind UDP socket", aInfo);
+      boundAInfos.push(boundAInfo);
     }
 
-    // update aInfos
-    this.aInfos = this.udpSockets.map(
-      udpSocket => udpSocket.address() as AddressInfo
-    );
-    this.iceServer.start(this.aInfos, remoteIceParams);
+    // then init another stuff
+    this.iceServer = new IceLiteServer(this.udpSockets, remoteIceParams);
+    // this.iceServer.once(SUCCESS_RESPONSE_SEND, () => sendDtlsClientHello());
   }
 
   getParams(): TransportParams {
+    if (this.iceServer === null) {
+      throw new Error("Transport.start() is not called yet!");
+    }
+
     return {
       iceParams: this.iceServer.getLocalParameters(),
       iceCandidates: this.iceServer.getLocalCandidates()
     };
-  }
-
-  // See https://tools.ietf.org/html/rfc7983#section-7
-  handlePacket($packet: Buffer, rInfo: RemoteInfo, udpSocket: Socket) {
-    switch (true) {
-      case $packet[0] >= 0 && $packet[0] <= 3: {
-        const $res = this.iceServer.handleStunPacket($packet, rInfo);
-        $res && udpSocket.send($res, rInfo.port, rInfo.address);
-        break;
-      }
-      case $packet[0] >= 20 && $packet[0] <= 63: {
-        debug("handle dtls packet");
-        break;
-      }
-      case $packet[0] >= 128 && $packet[0] <= 191: {
-        debug("handle rtp/rtcp packet");
-        break;
-      }
-      default:
-        debug("discard unknown packet");
-    }
-  }
-
-  private bindUdpSocket(sock: Socket, aInfo: AddressInfo): Promise<void> {
-    return new Promise((resolve, reject) => {
-      sock.once("error", reject);
-      sock.bind(aInfo.port, aInfo.address, () => {
-        sock.removeListener("error", reject);
-        resolve();
-      });
-    });
   }
 }
