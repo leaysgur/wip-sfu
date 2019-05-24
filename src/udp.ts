@@ -17,7 +17,8 @@ export function createAndBindSocket(aInfo: AddressInfo): Promise<Socket> {
 
 // See https://tools.ietf.org/html/rfc7983#section-7
 export function isStun($packet: Buffer): boolean {
-  return $packet[0] >= 0 && $packet[0] <= 3;
+  // STUN packet must have 20byte header
+  return $packet[0] >= 0 && $packet[0] <= 3 && $packet.length > 20;
 }
 export function isDtls($packet: Buffer): boolean {
   return $packet[0] >= 20 && $packet[0] <= 63;
