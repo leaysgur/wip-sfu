@@ -71,6 +71,7 @@ o=mediasoup-client 10000 1 IN IP4 0.0.0.0
 s=-
 t=0 0
 a=ice-lite
+a=ice-options:ice2
 a=fingerprint:sha-512 87:79:86:B2:18:BE:BC:C4:4D:98:B4:B6:98:DA:ED:58:4F:7C:18:15:15:B2:FC:47:8D:75:1B:F6:58:27:27:19:D9:5A:E9:08:1E:DB:1F:BA:CE:57:3C:8E:23:6B:D3:02:01:D7:6B:6C:C2:BE:0F:81:51:3C:62:0A:8A:36:C1:FA
 a=msid-semantic: WMS *
 a=group:BUNDLE 0
