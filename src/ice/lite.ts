@@ -47,7 +47,7 @@ export class IceLiteServer extends EventEmitter {
     };
     this.candidates = [];
 
-    debug("constructor()", this);
+    debug("constructor()", this.localParams);
   }
 
   async start(aInfos: AddressInfo[], remoteIceParams: IceParams) {
