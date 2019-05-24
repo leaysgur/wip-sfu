@@ -1,7 +1,13 @@
 import { AddressInfo } from "net";
 // import { Socket, RemoteInfo } from "dgram";
 import _debug from "debug";
-import { IceLiteServer, IceParams, IceCandidate } from "./ice";
+import {
+  IceLiteServer,
+  IceParams,
+  IceCandidate,
+  IceState,
+  SelectedPair
+} from "./ice";
 // import { isDtls, isRtp } from "./udp";
 
 const debug = _debug("transport");
@@ -28,11 +34,15 @@ export class Transport {
     // then init another stuff
     await this.iceServer.start(aInfos, remoteIceParams);
 
-    this.iceServer.on("selectedPair", () => {
+    this.iceServer.on("selectedPair", ({ socket, rInfo }: SelectedPair) => {
+      // TODO: store this selected
+      // TODO: use selectedPair.rInfo to ignore other packet recv
+      // TODO: use selectedPair.socket to packet send
       // use this socket and rAddress to send dtls, and so on..
-      // socket.on("message", ($packet, rInfo) => this.handlePacket($packet, rInfo, socket));
+      socket;
+      rInfo;
     });
-    this.iceServer.on("stateChange", state => {
+    this.iceServer.on("stateChange", (state: IceState) => {
       debug(state);
     });
     // TODO this.dtls = ...

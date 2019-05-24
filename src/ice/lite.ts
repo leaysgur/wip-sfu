@@ -13,7 +13,12 @@ import {
 
 const debug = _debug("ice-lite");
 
-type IceState = "new" | "connected" | "completed";
+export interface SelectedPair {
+  socket: Socket;
+  rInfo: RemoteInfo;
+}
+
+export type IceState = "new" | "connected" | "completed";
 
 export interface IceParams {
   usernameFragment: string;
@@ -51,7 +56,8 @@ export class IceLiteServer extends EventEmitter {
     const boundAInfos = [];
     for (const aInfo of aInfos) {
       const udpSocket = await createAndBindSocket(aInfo);
-      boundAInfos.push(udpSocket.address() as AddressInfo);
+      const boundAInfo = udpSocket.address() as AddressInfo;
+      debug("bind UDP socket", boundAInfo);
 
       udpSocket.on("message", ($packet, rInfo) => {
         if (!isStun($packet)) {
@@ -61,7 +67,7 @@ export class IceLiteServer extends EventEmitter {
       });
 
       this.udpSockets.push(udpSocket);
-      debug("bind UDP socket", udpSocket);
+      boundAInfos.push(boundAInfo);
     }
 
     // need bound port
@@ -83,7 +89,7 @@ export class IceLiteServer extends EventEmitter {
   }
 
   private handleStunPacket($packet: Buffer, rInfo: RemoteInfo, socket: Socket) {
-    debug("handleStunPacket()", rInfo.address, rInfo.port);
+    debug("handleStunPacket() from", rInfo);
 
     const msg = parseMessage($packet);
     // fail to parse OR not a binding request, discard
@@ -128,40 +134,38 @@ export class IceLiteServer extends EventEmitter {
     useCandidate: boolean
   ) {
     debug("handleSelectedPair()", rInfo, useCandidate);
-    rInfo;
-    socket;
 
-    // TODO: when setSelected
-    // - start DTLS
-    // - close other sockets
     switch (this.state) {
+      // set selected this 1st candidate
       case "new": {
+        this.setSelectedPair({ socket, rInfo });
         this.setState("connected");
-        // add
-        // setSelected
         break;
       }
+      //  2nd, 3rd.. candidates OR 1st candidate conn checks
       case "connected": {
         if (useCandidate) {
-          // add
-          // setSelected
           this.setState("completed");
-        } else {
-          // add
         }
         break;
       }
       case "completed": {
-        if (useCandidate) {
-          // add
-          // setSelected
-          this.setState("completed");
-        } else {
-          // add
-        }
         break;
       }
     }
+  }
+
+  private setSelectedPair(pair: SelectedPair) {
+    debug("setSelectedPair()", pair.rInfo, pair.socket.address());
+
+    for (const udpSocket of this.udpSockets) {
+      if (udpSocket !== pair.socket) {
+        udpSocket.removeAllListeners();
+        udpSocket.close();
+      }
+    }
+
+    this.emit("selectedPair", pair);
   }
 
   private setState(newState: IceState) {
