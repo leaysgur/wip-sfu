@@ -34,16 +34,15 @@ export class Transport {
     // then init another stuff
     await this.iceServer.start(aInfos, remoteIceParams);
 
-    this.iceServer.on("selectedPair", ({ socket, rInfo }: SelectedPair) => {
-      // TODO: store this selected
+    this.iceServer.on("selectedPair", (selectedPair: SelectedPair) => {
+      debug("onIce:selectedPair");
+      // TODO: store this selected pair
       // TODO: use selectedPair.rInfo to ignore other packet recv
       // TODO: use selectedPair.socket to packet send
-      // use this socket and rAddress to send dtls, and so on..
-      socket;
-      rInfo;
+      selectedPair;
     });
     this.iceServer.on("stateChange", (state: IceState) => {
-      debug(state);
+      debug("onIce:stateChange", state);
     });
     // TODO this.dtls = ...
   }
