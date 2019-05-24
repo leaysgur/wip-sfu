@@ -46,7 +46,7 @@ export class IceLiteServer {
   }
 
   handleStunPacket($packet: Buffer, rInfo: RemoteInfo): Buffer | null {
-    debug("handleStunPacket()", rInfo);
+    debug("handleStunPacket()", rInfo.address, rInfo.port);
 
     // if we are not ready
     if (!(this.candidates.length !== 0 && this.remoteParams !== null)) {
@@ -80,6 +80,8 @@ export class IceLiteServer {
       debug("receive USE-CANDIDATE");
       // TODO: connected -> completed
     }
+
+    debug({ ...msg.attrs });
 
     const $res = createSuccessResponseForConnectivityCheck(
       msg.header.transactionId,
