@@ -1,3 +1,4 @@
+import { AddressInfo } from "net";
 import { RemoteInfo } from "dgram";
 import _debug from "debug";
 import { createUdpHostCandidate, IceCandidate } from "./candidate";
@@ -7,7 +8,6 @@ import {
   isConnectivityCheck,
   createSuccessResponseForConnectivityCheck
 } from "./stun";
-import { UdpSocket } from "../udp";
 
 const debug = _debug("ice-lite");
 
@@ -21,26 +21,16 @@ export class IceLiteServer {
   private remoteParams: IceParams;
   private candidates: IceCandidate[];
 
-  constructor(udpSockets: UdpSocket[], remoteIceParams: IceParams) {
+  constructor(aInfos: AddressInfo[], remoteIceParams: IceParams) {
     this.localParams = {
       usernameFragment: generateIceChars(4),
       password: generateIceChars(22)
     };
-    this.remoteParams = remoteIceParams;
 
-    const aInfos = udpSockets.map(sock => sock.address);
+    this.remoteParams = remoteIceParams;
     this.candidates = aInfos.map((aInfo, idx) =>
       createUdpHostCandidate(this.localParams.usernameFragment, aInfo, idx)
     );
-
-    for (const udpSocket of udpSockets) {
-      udpSocket.on("stun", ($packet: Buffer, rInfo: RemoteInfo) => {
-        const $res = this.handleStunPacket($packet, rInfo);
-        $res && udpSocket.send($res, rInfo);
-
-        // TODO: send success response means this remote candidate can be valid tuple
-      });
-    }
 
     debug("constructor()", this.getLocalParameters());
   }

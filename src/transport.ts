@@ -1,7 +1,8 @@
 import { AddressInfo } from "net";
+import { Socket, RemoteInfo } from "dgram";
 import _debug from "debug";
 import { IceLiteServer, IceParams, IceCandidate } from "./ice";
-import { UdpSocket } from "./udp";
+import { createAndBindSocket, isStun, isDtls, isRtp } from "./udp";
 
 const debug = _debug("transport");
 
@@ -11,7 +12,7 @@ interface TransportParams {
 }
 
 export class Transport {
-  private udpSockets: UdpSocket[];
+  private udpSockets: Socket[];
   private iceServer: IceLiteServer | null;
 
   constructor() {
@@ -27,21 +28,24 @@ export class Transport {
   ): Promise<void> {
     debug("start()", remoteIceParams);
 
-    const boundAInfos = [];
     // bind UDP sockets
+    const boundAInfos = [];
     for (const aInfo of aInfos) {
-      // TODO: pass remote aInfo to ensure unicast
-      const udpSocket = new UdpSocket(aInfo);
-      const boundAInfo = await udpSocket.bind(aInfo);
-      debug("bound UDP socket", boundAInfo);
-
+      // TODO: pass rInfo to ensure unicast
+      const udpSocket = await createAndBindSocket(aInfo);
+      udpSocket.on("message", ($packet, rInfo) =>
+        this.handlePacket($packet, rInfo, udpSocket)
+      );
       this.udpSockets.push(udpSocket);
+
+      const boundAInfo = udpSocket.address() as AddressInfo;
+      debug("bound UDP socket", boundAInfo);
       boundAInfos.push(boundAInfo);
     }
 
     // then init another stuff
-    this.iceServer = new IceLiteServer(this.udpSockets, remoteIceParams);
-    // this.iceServer.once(SUCCESS_RESPONSE_SEND, () => sendDtlsClientHello());
+    this.iceServer = new IceLiteServer(boundAInfos, remoteIceParams);
+    // TODO this.dtls = ...
   }
 
   getParams(): TransportParams {
@@ -53,5 +57,31 @@ export class Transport {
       iceParams: this.iceServer.getLocalParameters(),
       iceCandidates: this.iceServer.getLocalCandidates()
     };
+  }
+
+  handlePacket($packet: Buffer, rInfo: RemoteInfo, socket: Socket) {
+    if (this.iceServer === null) {
+      return;
+    }
+
+    switch (true) {
+      case isStun($packet): {
+        const $res = this.iceServer.handleStunPacket($packet, rInfo);
+        if ($res !== null) {
+          socket.send($res, rInfo.port, rInfo.address);
+        }
+        break;
+      }
+      case isDtls($packet): {
+        debug("handle dtls packet");
+        break;
+      }
+      case isRtp($packet): {
+        debug("handle rtp+rtcp packet");
+        break;
+      }
+      default:
+        debug("discard unknown packet");
+    }
   }
 }
