@@ -1,5 +1,5 @@
 import { AddressInfo } from "net";
-// import { Socket, RemoteInfo } from "dgram";
+import { RemoteInfo } from "dgram";
 import _debug from "debug";
 import {
   IceLiteServer,
@@ -8,7 +8,7 @@ import {
   IceState,
   SelectedPair
 } from "./ice";
-// import { isDtls, isRtp } from "./udp";
+import { isDtls, isRtp } from "./udp";
 
 const debug = _debug("transport");
 
@@ -19,10 +19,12 @@ interface TransportParams {
 
 export class Transport {
   private iceServer: IceLiteServer;
+  private selectedPair: SelectedPair | null;
 
   constructor() {
     debug("constructor()");
     this.iceServer = new IceLiteServer();
+    this.selectedPair = null;
   }
 
   async start(
@@ -36,15 +38,14 @@ export class Transport {
 
     this.iceServer.on("selectedPair", (selectedPair: SelectedPair) => {
       debug("onIce:selectedPair");
-      // TODO: store this selected pair
-      // TODO: use selectedPair.rInfo to ignore other packet recv
-      // TODO: use selectedPair.socket to packet send
-      selectedPair;
+      this.selectedPair = selectedPair;
+      this.selectedPair.socket.on("message", this.handlePacket);
+
+      // TODO: this.dtlsServer.run();
     });
     this.iceServer.on("stateChange", (state: IceState) => {
       debug("onIce:stateChange", state);
     });
-    // TODO this.dtls = ...
   }
 
   getParams(): TransportParams {
@@ -58,19 +59,28 @@ export class Transport {
     };
   }
 
-  // TODO: private
-  // handlePacket($packet: Buffer, rInfo: RemoteInfo, socket: Socket) {
-  //   switch (true) {
-  //     case isDtls($packet): {
-  //       debug("handle dtls packet");
-  //       break;
-  //     }
-  //     case isRtp($packet): {
-  //       debug("handle rtp+rtcp packet");
-  //       break;
-  //     }
-  //     default:
-  //       debug("discard unknown packet");
-  //   }
-  // }
+  private handlePacket($packet: Buffer, rInfo: RemoteInfo) {
+    if (this.selectedPair === null) {
+      return;
+    }
+    if (
+      rInfo.address !== this.selectedPair.rInfo.address ||
+      rInfo.port !== this.selectedPair.rInfo.port
+    ) {
+      return;
+    }
+
+    switch (true) {
+      case isDtls($packet): {
+        debug("handle dtls packet");
+        break;
+      }
+      case isRtp($packet): {
+        debug("handle rtp+rtcp packet");
+        break;
+      }
+      default:
+        debug("discard unknown packet");
+    }
+  }
 }
