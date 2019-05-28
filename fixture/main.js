@@ -33,6 +33,7 @@ $sendOffer.onclick = async () => {
   url.searchParams.append("id", Date.now());
 
   const iceParams = extractIceParams(pc.localDescription.sdp);
+  const mediaSections = extractMediaSection(pc.localDescription.sdp);
   Object.entries(iceParams).forEach(([key, val]) =>
     url.searchParams.append(key, val)
   );
@@ -40,7 +41,7 @@ $sendOffer.onclick = async () => {
   const connParams = await fetch(url.toString(), { mode: "cors" }).then(res =>
     res.json()
   );
-  const answer = await paramsToAnswerSDP(connParams);
+  const answer = await paramsToAnswerSDP(connParams, mediaSections);
   console.log(answer.sdp);
   await pc.setRemoteDescription(answer);
   console.log(sender.transport);
@@ -64,10 +65,13 @@ function extractIceParams(sdp) {
   return params;
 }
 
-async function paramsToAnswerSDP({ iceParams, iceCandidates }) {
+async function paramsToAnswerSDP(
+  { iceParams, iceCandidates },
+  offerMediaSection
+) {
   const baseLines = `
 v=0
-o=mediasoup-client 10000 1 IN IP4 0.0.0.0
+o=wip-sfu-client 10000 1 IN IP4 0.0.0.0
 s=-
 t=0 0
 a=ice-lite
@@ -77,9 +81,9 @@ a=group:BUNDLE 0
 m=audio 7 UDP/TLS/RTP/SAVPF 111
 c=IN IP4 127.0.0.1
 a=rtpmap:111 opus/48000/2
+a=setup:active
 a=extmap:3 urn:ietf:params:rtp-hdrext:sdes:mid
 a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
-a=setup:active
 a=mid:0
 a=recvonly
 a=ice-ufrag:vxusqovw9i555wid
@@ -95,6 +99,12 @@ a=rtcp-rsize
 
   const answerLines = [];
   for (let line of baseLines) {
+    if (line.startsWith("m=")) {
+      line = offerMediaSection.mLine;
+    }
+    if (line.startsWith("a=rtpmap")) {
+      line = offerMediaSection.rtpmap;
+    }
     if (line.startsWith("a=ice-ufrag")) {
       const { usernameFragment } = iceParams;
       line = `a=ice-ufrag:${usernameFragment}`;
@@ -129,4 +139,23 @@ a=rtcp-rsize
     type: "answer",
     sdp: answerLines.join("\r\n") + "\r\n"
   });
+}
+
+function extractMediaSection(offerSdp) {
+  let mLine;
+  let rtpmap = "";
+  for (const line of offerSdp.split("\r\n")) {
+    if (line.startsWith("m=")) {
+      const [m, , proto, pt] = line.split(" ").slice(0, 4);
+      mLine = [m, "7", proto, pt];
+    }
+
+    if (line.startsWith("a=rtpmap") && line.includes(`:${mLine[3]}`)) {
+      rtpmap = line;
+    }
+  }
+  return {
+    mLine: mLine.join(" "),
+    rtpmap
+  };
 }
