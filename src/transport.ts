@@ -8,7 +8,7 @@ import {
   IceState,
   SelectedPair
 } from "./ice";
-import { isDtls, isRtp } from "./udp";
+import { isStun, isDtls, isRtp } from "./udp";
 
 const debug = _debug("transport");
 
@@ -39,7 +39,9 @@ export class Transport {
     this.iceServer.on("selectedPair", (selectedPair: SelectedPair) => {
       debug("onIce:selectedPair");
       this.selectedPair = selectedPair;
-      this.selectedPair.socket.on("message", this.handlePacket);
+      this.selectedPair.socket.on("message", ($packet, rInfo) =>
+        this.handlePacket($packet, rInfo)
+      );
 
       // TODO: this.dtlsServer.run();
     });
@@ -71,6 +73,10 @@ export class Transport {
     }
 
     switch (true) {
+      case isStun($packet): {
+        // ignore here
+        break;
+      }
       case isDtls($packet): {
         debug("handle dtls packet");
         break;
