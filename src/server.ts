@@ -72,17 +72,18 @@ export class SfuServer {
 
     debug("handlePublish()", id);
 
+    const transport = new Transport();
     try {
-      const transport = new Transport();
       await transport.start(this.options.sfu, remoteIceParams);
-      this.pubTransports.set(id, transport);
-
-      const transportParams = transport.getParams();
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(transportParams));
     } catch (err) {
       res.writeHead(500);
       res.end(err.toString());
     }
+
+    this.pubTransports.set(id, transport);
+
+    const transportParams = transport.getParams();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(transportParams));
   }
 }

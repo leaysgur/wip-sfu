@@ -11,12 +11,12 @@ import { SfuServer } from "./server";
       {
         family: "IPv4",
         address: "127.0.0.1",
-        port: 0
+        port: 0 // assign randomly
       },
       {
         family: "IPv6",
         address: "::1",
-        port: 0
+        port: 0 // assign randomly
       }
     ]
   });
