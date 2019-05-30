@@ -1,2 +1,3 @@
-export { IceLiteServer, IceParams, SelectedPair, IceState } from "./lite";
+export { IceLiteServer } from "./lite";
+export { IceParams } from "./lite";
 export { IceCandidate } from "./candidate";

@@ -13,12 +13,12 @@ import {
 
 const debug = _debug("ice-lite");
 
-export interface SelectedPair {
+interface SelectedPair {
   socket: Socket;
   rInfo: RemoteInfo;
 }
 
-export type IceState = "new" | "connected" | "completed";
+type IceState = "new" | "connected" | "completed";
 
 export interface IceParams {
   usernameFragment: string;
@@ -31,6 +31,7 @@ export class IceLiteServer extends EventEmitter {
   private localParams: IceParams;
   private remoteParams: IceParams;
   private candidates: IceCandidate[];
+  private selectedPair: SelectedPair | null;
 
   constructor() {
     super();
@@ -46,6 +47,7 @@ export class IceLiteServer extends EventEmitter {
       password: ""
     };
     this.candidates = [];
+    this.selectedPair = null;
 
     debug("constructor()", this.localParams);
   }
@@ -86,6 +88,15 @@ export class IceLiteServer extends EventEmitter {
 
   getLocalCandidates(): IceCandidate[] {
     return this.candidates;
+  }
+
+  send($packet: Buffer) {
+    if (this.selectedPair === null) {
+      return;
+    }
+
+    const { socket, rInfo } = this.selectedPair;
+    socket.send($packet, rInfo.port, rInfo.address);
   }
 
   private handleStunPacket($packet: Buffer, rInfo: RemoteInfo, socket: Socket) {
@@ -133,8 +144,6 @@ export class IceLiteServer extends EventEmitter {
     rInfo: RemoteInfo,
     useCandidate: boolean
   ) {
-    debug("handleSelectedPair()", rInfo, useCandidate);
-
     switch (this.state) {
       // set selected this 1st candidate
       case "new": {
@@ -165,12 +174,28 @@ export class IceLiteServer extends EventEmitter {
       }
     }
 
-    this.emit("selectedPair", pair);
+    pair.socket.on("message", ($packet, rInfo) => {
+      // unicast
+      if (
+        rInfo.address !== pair.rInfo.address ||
+        rInfo.port !== pair.rInfo.port
+      ) {
+        return;
+      }
+      // ignore here
+      if (isStun($packet)) {
+        return;
+      }
+
+      this.emit("message", $packet);
+    });
+
+    this.selectedPair = pair;
   }
 
   private setState(newState: IceState) {
     debug(`setState() from ${this.state} to ${newState}`);
     this.state = newState;
-    this.emit("stateChange", newState);
+    this.emit(newState);
   }
 }
